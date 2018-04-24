@@ -60,7 +60,6 @@ int DataIngest::processMQTT(UI* ui, char *topic, char *payload) {
     }
     if(_sourceType == DATAINGEST_TYPE_STATE_CHAR) {
       if(strstr(topic, "/state") != NULL) {
-        ui->updateStatus(payload, ILI9341_RED, false);
         updates = updates + _processStateChar(payload); 
       }
     }
