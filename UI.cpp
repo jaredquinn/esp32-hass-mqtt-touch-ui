@@ -158,6 +158,16 @@ void UI::_drawWidget_House(int column, int row, char *state) {
   
 };
 
+void UI::activityLight(int light, bool activity) {
+  uint16_t colour;
+
+  if(activity == true) colour = ILI9341_RED;
+  else colour = ILI9341_BLACK;
+
+  screen->fillRect(234, (light*6)+2, 6, 4, colour);  
+}
+
+
 
 int UI::_getSlotX(int slot) {
   if(slot <= UI_WIDGET_SLOTS) {

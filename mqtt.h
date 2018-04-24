@@ -61,7 +61,7 @@ void reconnect() {
 void callback(char* topic, byte* payload, unsigned int length) {
 
   /* change our little green mqtt indicator */
-  show_mqtt_activity(true);
+  ui.activityLight(0, true);
   
   char pl[255];
   if (USE_SERIAL) {
@@ -139,7 +139,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
       } else {
         client.publish("display/kitchen/event/switch/kitchen_light", "off");
       }
-      drawStatus("Switching Kithchen Light", ILI9341_GREEN);
     }
     
 
@@ -150,13 +149,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
       } else {
         client.publish("display/kitchen/event/switch/bathroom_light", "off");
       }
-      drawStatus("Switching Bathroom Light", ILI9341_GREEN);
     }
   }
 
 
   /* Change our little green dot */
-  show_mqtt_activity(false);
+  ui.activityLight(0, false);
 
 }
 

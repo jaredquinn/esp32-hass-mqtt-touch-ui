@@ -81,7 +81,6 @@ int runState = 0;
 #include "rows.h"
 #include "images.h"
 
-#include "draw.h"
 #include "datastore.h"
 #include "dataingest.h"
 #include "dataset.h"
@@ -244,9 +243,6 @@ void loop() {
      client.publish("display/kitchen/setting/display", "off");
   }
 
-  if (lastStatusPush != -1 && now - lastStatusPush > 10000) {
-     drawStatus("Welcome to CatsLair", ILI9341_BLUE); 
-  }
 
   if (now - lastTime > 1000) {
     update_clock();

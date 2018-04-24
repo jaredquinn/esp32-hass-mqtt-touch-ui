@@ -61,7 +61,8 @@ class UI {
     void renderFrame(int c);
     void renderGrid();
     void renderActiveFrames();
-    
+    void activityLight(int light, bool activity);
+
 
     void addWidget(int slot, int widgetType, char *title, char *unit, DataStore &ds);
     void addButton(int slot, int widgetType, char *title);
