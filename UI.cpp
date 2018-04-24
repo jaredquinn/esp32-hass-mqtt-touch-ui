@@ -12,17 +12,37 @@ UI::UI(Adafruit_ILI9341& scrn) {
   pwm_resolution = 8;
 
   _drawnGrid = false;
-
   _initializeWidgets();
-
   _initializeBacklight();
   _initializeScreen();
+
+  *clock.hour = DataStore("clock_hour", DATASTORE_TYPE_INT);
+  *clock.minute = DataStore("clock_minute", DATASTORE_TYPE_INT);
+  *clock.second = DataStore("clock_second", DATASTORE_TYPE_INT);
+  *clock.dayofweek = DataStore("clock_dayofweek", DATASTORE_TYPE_CHAR);
+  *clock.year = DataStore("clock_year", DATASTORE_TYPE_INT);
+  *clock.month = DataStore("clock_month", DATASTORE_TYPE_CHAR);
+  *clock.day = DataStore("clock_day", DATASTORE_TYPE_INT);
+
+  
 };
 
 void UI::finishSetup() {
   clearScreen(true, false);
   _ready();
-}
+};
+
+    
+void UI::updateClock(int h, int m, int s, char *dw, int y, char *mw, int d) {
+  clock.hour->update( h);
+  clock.minute->update( m );
+  clock.second->update( s );
+  clock.dayofweek->update( dw );
+  clock.year->update( y );
+  clock.month->update( mw );
+  clock.day->update( d );
+};
+
 
 void UI::loop() {
   renderActiveFrames();
@@ -54,7 +74,7 @@ void UI::_initializeBacklight() {
 
 void UI::_initializeWidgets() {
   /* Initialize our Widgets Page */
-  for (int c = 0; c <= UI_WIDGET_SLOTS; c++) {
+  for (int c = 0; c <= UI_SLOTS_TOTAL; c++) {
     strcpy(_widgets[c].title, "");
     strcpy(_widgets[c].unit, "");
     _widgets[c].widgetType = UI_WIDGET_NONE;
@@ -107,6 +127,19 @@ void UI::_drawUnit(int column, int row, char *symbol) {
   screen->setTextColor(ILI9341_DARKGREY, ILI9341_BLACK);
   screen->print(symbol);
 
+};
+
+void UI::_drawClockComponent(uiPosition_t pos, char *value) {
+
+  if(pos.slot == UI_CLOCK_TIME_DOTS) {
+    screen->fillRect(pos.x, pos.y, 4, 4, UI_CLOCK_COLOUR);  
+    screen->fillRect(pos.x, pos.y + 10, 4, 4, UI_CLOCK_COLOUR);
+  } else {
+    if(pos.fs > 0) screen->setTextSize(pos.fs);
+    screen->setTextColor(UI_CLOCK_COLOUR, ILI9341_BLACK);
+    screen->setCursor(pos.x, pos.y);
+    screen->printf(value);
+  }
 };
 
 
@@ -181,79 +214,52 @@ void UI::activityLight(int light, bool activity) {
 }
 
 
-
-int UI::_getSlotX(int slot) {
-  if (slot <= UI_WIDGET_SLOTS) {
-    if (slot > 15) {
-      return (slot % 8) * 40;
-    }
-    if (slot % 4 < 2) {
-      return (slot % 4) * 80;
-    }
-    if (slot % 4 >= 2) {
-      return 160 + (((slot % 4) - 2) * 40);
-    }
-  }
-  return 0;
-};
-
-int UI::_getSlotY(int slot) {
-  if (slot <= UI_WIDGET_SLOTS) {
-    if (slot > 15 && slot < 23) {
-      return 250;
-    }
-    return (int(slot / 4) + 1) * 50;
-  }
-  return 0;
-};
-
-int UI::_getSlotW(int slot) {
-  if (slot <= UI_WIDGET_SLOTS) {
-    if (slot % 4 < 2) return 90;
-    if (slot % 4 >= 2) return 40;
-  }
-  return 0;
-};
-
-int UI::_getSlotH(int slot) {
-  return 50;
-};
-
 void UI::renderWidget(int c) {
+  uiPosition_t pos = getPositionForSlot(c);
+
   if (_widgets[c].ds != NULL) {
+    
     switch (_widgets[c].widgetType) {
       case UI_WIDGET_BULB:
-        _drawWidget_Bulb(_getSlotX(c), _getSlotY(c), _widgets[c].ds->getBoolValue());
+        _drawWidget_Bulb(pos.x, pos.y, _widgets[c].ds->getBoolValue());
         break;
       case UI_WIDGET_HOUSE:
-        _drawWidget_House(_getSlotX(c), _getSlotY(c), _widgets[c].ds->getCharValue());
+        _drawWidget_House(pos.x, pos.y, _widgets[c].ds->getCharValue());
         break;
       case UI_WIDGET_FLOAT:
-        _drawWidget_Float(_getSlotX(c), _getSlotY(c), _widgets[c].ds->getFloatValue());
+        _drawWidget_Float(pos.x, pos.y, _widgets[c].ds->getFloatValue());
+        break;
+      case UI_WIDGET_CLOCK:
+        char str[10];
+        if(c == UI_CLOCK_TIME_HH || c == UI_CLOCK_TIME_MM || \
+           c == UI_CLOCK_TIME_SS || c == UI_CLOCK_DATE_DAY)  sprintf(str, "%02d", _widgets[c].ds->getIntValue());
+        if(c == UI_CLOCK_DATE_YEAR)                          sprintf(str, "%04d", _widgets[c].ds->getIntValue());
+        if(c == UI_CLOCK_DATE_DOW || c == UI_CLOCK_DATE_MON) strcpy(str, _widgets[c].ds->getCharValue());        
+        if(c == UI_CLOCK_TIME_DOTS)                          strcpy(str, "");
+        
+        _drawClockComponent(pos, str);
         break;
     }
   }
 }
 
 void UI::renderFrame(int c) {
-  int x = _getSlotX(c);
-  int y = _getSlotY(c);
-  int w = _getSlotW(c);
-  int h = _getSlotH(c);
+
+  uiPosition_t pos = getPositionForSlot(c);
 
   switch (_widgets[c].widgetType) {
     case UI_WIDGET_BULB:
-      _drawTitle(x, y, _widgets[c].title);
+      _drawTitle(pos.x, pos.y, _widgets[c].title);
       break;
     case UI_WIDGET_HOUSE:
-      _drawTitle(x, y, _widgets[c].title);
+      _drawTitle(pos.x, pos.y, _widgets[c].title);
       break;
     case UI_WIDGET_BUTTON:
-      _drawButton(x, y, w, h, _widgets[c].title);
+      _drawButton(pos.x, pos.y, pos.w, pos.h, _widgets[c].title);
       break;
     case UI_WIDGET_FLOAT:
-      _drawTitle(x, y, _widgets[c].title);
-      _drawUnit(x, y, _widgets[c].unit);
+      _drawTitle(pos.x, pos.y, _widgets[c].title);
+      _drawUnit(pos.x, pos.y, _widgets[c].unit);
       break;
   }
   return;
@@ -271,7 +277,7 @@ void UI::renderActiveFrames() {
     renderGrid();
     _drawnGrid = true;
   }
-  for (int c = 0; c < UI_WIDGET_SLOTS; c++) {
+  for (int c = 0; c < UI_SLOTS_TOTAL; c++) {
     if (_widgets[c]._active == true) {
       if (millis() - _widgets[c]._lastTitle > 10000) {
         _widgets[c]._lastTitle = millis() - random(1000);
@@ -282,7 +288,7 @@ void UI::renderActiveFrames() {
 }
 
 void UI::render() {
-  for (int c = 0; c < UI_WIDGET_SLOTS; c++) {
+  for (int c = 0; c < UI_SLOTS_TOTAL ; c++) {
 
     if (_widgets[c]._active == true && _widgets[c].ds != NULL) {
       if (_widgets[c].ds->lastChange() > _widgets[c]._lastDrawn) {
@@ -311,14 +317,17 @@ void UI::addButton(int slot, int widgetType, char *title) {
 
 void UI::addWidget(int slot, int widgetType, char *title, char *unit, DataStore& ds) {
   addButton(slot, widgetType, title);
-
-  //strcpy(_widgets[slot].title, title);
+  
   strcpy(_widgets[slot].unit, unit);
-  //_widgets[slot].widgetType = widgetType;
   _widgets[slot].ds = &ds;
-  //_widgets[slot]._active = true;
-  //_widgets[slot]._lastDrawn = 0;
-  //_widgets[slot]._lastTitle = 0;
+  _widgets[slot]._updates = true;
+};
+
+void UI::addClock(int slot, DataStore& ds) {
+  _widgets[slot].ds = &ds;
+  _widgets[slot]._active = true;
+  _widgets[slot]._lastDrawn = 0;
+  _widgets[slot]._lastTitle = 0;
   _widgets[slot]._updates = true;
 };
 
@@ -343,4 +352,39 @@ void UI::_ready() {
 };
 
 
+UI::uiPosition_t UI::getPositionForSlot(int slot) {
+
+  uiPosition_t pos;
+
+  if(slot <= UI_SLOTS_MAX_CLOCK) {
+    pos.h = 50;
+    switch(slot) {
+      case UI_CLOCK_TIME_HH:   pos.x = 6;   pos.y = 4; pos.fs = 4; 
+      case UI_CLOCK_TIME_MM:   pos.x = 64;  pos.y = 4; pos.fs = 4; 
+      case UI_CLOCK_TIME_SS:   pos.x = 116; pos.y = 4; pos.fs = 2; 
+      case UI_CLOCK_TIME_DOTS: pos.x = 52;  pos.y = 12; 
+      case UI_CLOCK_DATE_MON:  pos.x = 146; pos.y = 18; pos.fs = 2;
+      case UI_CLOCK_DATE_DOW:  pos.x = 118; pos.y = 24; pos.fs = 1; 
+      case UI_CLOCK_DATE_DAY:  pos.x = 186; pos.y = 4; pos.fs = 4; 
+      case UI_CLOCK_DATE_YEAR: pos.x = 150; pos.y = 4; pos.fs = 1; 
+    }   
+  }
+
+  if(slot > UI_SLOTS_MAX_CLOCK && slot < UI_BUTTON_1) {
+    int wSlot = slot - UI_SLOTS_MAX_CLOCK;
+    
+    if (wSlot % 4 == 0 || wSlot % 4 == 1) pos.x = wSlot % 4 * 80;
+    if (wSlot % 4 == 2 || wSlot % 4 == 3) pos.x = 160 + (((wSlot % 4) - 2) * 40);
+    pos.y = (int(wSlot / 4) + 1) * 50;
+  }
+
+  if(slot >= UI_BUTTON_1 <= UI_SLOTS_TOTAL) {
+    int bSlot = slot - UI_BUTTON_1;
+    pos.y = 250;
+    pos.x = (bSlot % 8) * 40; 
+  }
+
+  pos.slot = slot;
+  return pos;  
+};
 

@@ -1,5 +1,5 @@
 /**
- * clock.h
+ * clock.cpp 
  * UI Interface Wrapper for NTPClient for syncing clock with NTP
  * 
  * The MIT License (MIT)
@@ -24,41 +24,54 @@
  */
 
 
-#ifndef CLOCK_H
-#define CLOCK_H
-
+#include "clock.h"
 #include "UI.h"
+#include "datastore.h"
 #include <NTPClient.h>
 
-const static char CLOCK_MONTHS[12][4] = { "JAN", "FEB", "MAR", "APR","MAY","JUN","JUL","AUG","SEP","OCT", "NOV", "DEC" };
-const static char CLOCK_DAYS[7][4] = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
-
-class UI_Clock_NTP  {
-  public:
-    UI_Clock_NTP(UI* ui, NTPClient* ntp);
-    int syncTimeout;
-    
-    void setOffset(int offset);
-    void loop();
-    void setSyncFrequency(int seconds);
-
-  private:
-
-    void _updateClock();
-    
-    unsigned long _lastTime;
-    
-    long _lastUpdate;
-    long _lastSync;
-
-    int _offset;
-    int _syncSeconds;
-    
-    UI* _ui;
-    NTPClient* _ntp;
-    
-    
+UI_Clock_NTP::UI_Clock_NTP(UI *ui, NTPClient* ntp) {
+  _lastUpdate = 0;
+  _ui = ui;
+  _ntp = ntp;
 };
 
-#endif
+void UI_Clock_NTP::_updateClock() {
+
+  char *dow;
+  char *mon;
+
+  strcpy(dow, CLOCK_DAYS[ _ntp->getDay() ]);
+  strcpy(mon, CLOCK_MONTHS[ _ntp->getMonth() ]);
+  
+  _ui->updateClock(
+      _ntp->getHours(),
+      _ntp->getMinutes(),
+      _ntp->getSeconds(),
+      dow,
+      _ntp->getYear(),
+      mon,
+      _ntp->getDate() 
+  );  
+
+  _lastUpdate = _ntp->getEpochTime();
+};
+
+
+void UI_Clock_NTP::setSyncFrequency(int seconds) {
+  _syncSeconds = seconds;
+  _ntp->setUpdateInterval(seconds);
+};
+
+void UI_Clock_NTP::setOffset(int offset) {
+  _offset = offset;
+  _ntp->setTimeOffset(offset);
+};
+
+void UI_Clock_NTP::loop() {
+  long c = _ntp->getEpochTime();
+  if(c - _lastUpdate > 1000) {
+    _updateClock();
+  }
+};
+
 
