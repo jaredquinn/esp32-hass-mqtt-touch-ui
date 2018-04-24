@@ -22,7 +22,7 @@ DeviceAddress TempAddress[MAX_SENSORS];
 #include <ArduinoOTA.h>
 
 
-#include <WiFiCredentials.h>
+#include "WiFiCredentials.h"
 
 #include <PubSubClient.h>
 
@@ -90,7 +90,7 @@ DataStore bathroomLight = DataStore("bathroom_light", DATASTORE_TYPE_BOOL);
 DataStore kitchenLight = DataStore("kitchen_light", DATASTORE_TYPE_BOOL);
 DataStore aquariumLight = DataStore("fish_light", DATASTORE_TYPE_BOOL);
 DataStore loungeLight = DataStore("lounge_light", DATASTORE_TYPE_BOOL);
-DataStore loungeExtraLight = DataStore("lounge_extra_light", DATASTORE_TYPE_BOOL);
+DataStore loungeExtraLight = DataStore("lounge_light_extra", DATASTORE_TYPE_BOOL);
 
 DataStore systemLoad1m = DataStore("system_load_1m", DATASTORE_TYPE_INT);
 
@@ -173,22 +173,20 @@ void setup() {
 
   ui.addWidget(UI_POS_1_1, UI_WIDGET_FLOAT, "Kitchen", "C", kitchenTemp);
   ui.addWidget(UI_POS_1_2, UI_WIDGET_FLOAT, "Outside", "C", outsideTemp);
-  ui.addWidget(UI_POS_1_3, UI_WIDGET_BULB, "Kitchen", "", kitchenLight);
-
+  ui.addWidget(UI_POS_1_3, UI_WIDGET_BULB, "Kitchn", "", kitchenLight);
   ui.addWidget(UI_POS_1_4, UI_WIDGET_BULB, "Lounge", "", loungeLight);
-  ui.addWidget(UI_POS_2_4, UI_WIDGET_BULB, "LoungeX", "", loungeExtraLight);
-
+  
+  
   ui.addWidget(UI_POS_2_3, UI_WIDGET_BULB, "Fish", "", aquariumLight);
+  ui.addWidget(UI_POS_2_4, UI_WIDGET_BULB, "Lnge X", "", loungeExtraLight);
 
   ui.addWidget(UI_POS_3_1, UI_WIDGET_FLOAT, "Bathroom", "C", bathroomTemp);
   ui.addWidget(UI_POS_3_2, UI_WIDGET_FLOAT, "Bathroom", "%H", bathroomHumidity);
-
   ui.addWidget(UI_POS_3_3, UI_WIDGET_BULB, "Bath", "", bathroomLight);
   
   ui.addWidget(UI_POS_4_1, UI_WIDGET_FLOAT, "Bedroom", "C", bedroomTemp);
   ui.addWidget(UI_POS_4_2, UI_WIDGET_FLOAT, "Bedroom", "%H", bedroomHumidity);
-
-  ui.addWidget(UI_POS_4_4, UI_WIDGET_HOUSE, "Alarm", "", alarmState);
+  ui.addWidget(UI_POS_4_4, UI_WIDGET_HOUSE, " Alarm", "", alarmState);
   
   ui.addButton(UI_BUTTON_1, UI_WIDGET_BUTTON, "Temp");
   ui.addButton(UI_BUTTON_2, UI_WIDGET_BUTTON, "Light");
