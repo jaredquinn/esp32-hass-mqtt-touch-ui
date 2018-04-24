@@ -139,14 +139,13 @@ void UI::_drawWidget_House(int column, int row, char *state) {
   uint16_t colour;
   colour = ILI9341_DARKGREY;
 
-  updateStatus(state, ILI9341_PURPLE, false);
   if(strcmp(state, "disarmed") == 0) colour = ILI9341_GREEN;
   if(strcmp(state, "pending") == 0) colour = ILI9341_ORANGE;
   if(strcmp(state, "armed_away") == 0) colour = ILI9341_RED;
   if(strcmp(state, "armed_home") == 0) colour = ILI9341_BLUE;
   
-  screen->fillTriangle(column+5, row+25, column+15, row+10, column+25, row+25, colour);
-  screen->fillRect(column+5, row+25, 20, 20, colour); 
+  screen->fillTriangle(column+4, row+25, column+20, row+10, column+36, row+25, colour);
+  screen->fillRect(column+10, row+25, 20, 20, colour); 
 };
 
 
