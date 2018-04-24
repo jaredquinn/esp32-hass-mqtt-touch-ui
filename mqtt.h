@@ -124,6 +124,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       ESP.restart();
     }
   }
+
+  /* Touch handlers are next to move to UI */
  
   if (strcmp(topic, "display/kitchen/event/touch")  == 0) {
     StaticJsonBuffer<200> jsonBuffer;
