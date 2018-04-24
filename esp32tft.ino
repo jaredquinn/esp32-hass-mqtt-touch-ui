@@ -6,7 +6,6 @@ bool USE_SERIAL = true;
 
 #define USE_FAST_PINIO true
 
-
 #define ONE_WIRE_BUS 17
 #define MAX_SENSORS 8
 
@@ -79,7 +78,6 @@ float mqttTemp = 0;
 int runState = 0;
 
 #include "rows.h"
-#include "images.h"
 
 #include "datastore.h"
 #include "dataingest.h"
@@ -163,6 +161,7 @@ void setup() {
   myscreen.println("Getting Time from NTP");
   timeClient.begin();
 
+
   /* The current model of object and add will be replaced by a single add like UI shortly */
   myset.addIngester(mqttSystemLoad1m);
   myset.addIngester(mqttBathroomLight);
@@ -208,6 +207,7 @@ void setup() {
   booted = millis();
   runState = 10;
   delay(1000);  
+  
 
   ui.finishSetup();
 
@@ -215,28 +215,18 @@ void setup() {
 
 
 void loop() {
-  char temperatureString[6];
-  int wholePart;
-  int decimalPart;
   long now = millis();
-  int x;
-  long rt;
   bool requestedTemp;
 
-  if (!client.connected()) {
-    reconnect();
-  }
-
-  client.loop();
   ArduinoOTA.handle();
+  
+  if (!client.connected()) reconnect();
+  client.loop();
+
+  /* checkTouch moving to UI */
   checkTouch();
 
-  
-  if(!ranBefore) {
-    //drawPage1();
-    ranBefore = true;
-  }
-
+  /* Display on/off to move to UI */
   if (screenOn > 0 && now - screenOn > screenTimeout && \
       now - lastTouch > screenTimeout && screenTimeout != -1) {
      screenOn = 0; // set it here to prevent multiple triggers
@@ -247,7 +237,6 @@ void loop() {
   if (now - lastTime > 1000) {
     update_clock();
     ui.loop();
-    //mypage.render(myscreen);
     lastTime = now;
   }
 
@@ -258,11 +247,6 @@ void loop() {
   
   if (now - mqttPublishTemp > 2000) {
     sensor_get_values();
-  }
-
-  if (now - lastHello > 48000) {
-    client.publish("display/kitchen/status/last", "HELLO");
-    lastHello = now;
   }
 
 }
