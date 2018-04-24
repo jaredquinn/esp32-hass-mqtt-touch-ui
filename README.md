@@ -12,3 +12,16 @@ exists.
 
 Documentation will come.... I promise.
 
+# Current Software Supported
+
+* MQTT (designed for Home Assistant integration)
+* NTP for Time Sync (not RTC yet)
+
+# Current Hardware Supported
+
+* ILI9341 2.8" TFT Panel
+* XPT2046 Touchscreen
+* DS18B20 Dallas OneWire Temperature Sensor
+* ESP32 Internal Temperature
+
+
