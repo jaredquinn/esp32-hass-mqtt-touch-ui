@@ -2,6 +2,16 @@
 #include <DallasTemperature.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint8_t temprature_sens_read();
+#ifdef __cplusplus
+}
+#endif
+uint8_t temprature_sens_read();
+
+
 bool USE_SERIAL = true;
 
 #define USE_FAST_PINIO true
@@ -26,14 +36,10 @@ DeviceAddress TempAddress[MAX_SENSORS];
 #include <PubSubClient.h>
 
 #include <ArduinoJson.h>
-#include <NTPClient.h>
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-WiFiUDP ntpUDP;
-
-NTPClient timeClient(ntpUDP, NTP_SERVER, 36000, 36000);
 
 #include "pins.h"
 
@@ -47,7 +53,22 @@ Adafruit_ILI9341 myscreen = Adafruit_ILI9341(PIN_TFT_CS, PIN_TFT_DC, PIN_HSPI_MO
 #include <XPT2046_Touchscreen.h>
 XPT2046_Touchscreen ts(PIN_TS_CS);
 
-static int taskCore = 0;
+WiFiUDP ntpUDP;
+
+#include <NTPClient.h>
+#include "clock.h"
+
+#include "UI.h"
+#include "rows.h"
+
+#include "datastore.h"
+#include "dataingest.h"
+#include "dataset.h"
+
+UI ui = UI(myscreen);
+
+NTPClient timeClient(ntpUDP, NTP_SERVER, 36000, 36000);
+UI_Clock_NTP uiClock(&ui, &timeClient);
 
 
 long booted = 0;
@@ -64,8 +85,6 @@ long lastStatusPush = 0;
 bool ranBefore = false;
 
 long lastTime = 0;
-
-long lastHello = 0;
 long lastCheckTemp = 0;
 float currentTemp = 0;
 float lastTemp = 0;
@@ -77,11 +96,6 @@ float mqttTemp = 0;
 
 int runState = 0;
 
-#include "rows.h"
-
-#include "datastore.h"
-#include "dataingest.h"
-#include "dataset.h"
 
 DataStore bathroomLight = DataStore("bathroom_light", DATASTORE_TYPE_BOOL);
 DataStore kitchenLight = DataStore("kitchen_light", DATASTORE_TYPE_BOOL);
@@ -129,10 +143,6 @@ DataIngest mqttBathroomHumidity = DataIngest( "sensor/humidity_158d0001c15683", 
 DataIngest mqttAlarmState = DataIngest("alarm_control_panel/ha_alarm", DATAINGEST_TYPE_STATE_CHAR, alarmState);
 
 
-
-#include "UI.h"
-
-UI ui = UI(myscreen);
 
 
 #include "touch.h"
@@ -235,7 +245,6 @@ void loop() {
 
 
   if (now - lastTime > 1000) {
-    update_clock();
     ui.loop();
     lastTime = now;
   }
