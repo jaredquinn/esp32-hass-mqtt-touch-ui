@@ -8,4 +8,7 @@ This is a work in progress.  It is evolving.
 Compatibility between commits is likely to vary, however a roadmap to version 1.00
 exists.
 
+# Documentation
+
+Documentation will come.... I promise.
 
