@@ -1,7 +1,6 @@
 
-bool fishLampState = false;
-bool kitchenLightState = false;
-bool bathroomLightState = false;
+/* This library is mostly deprecated */
+
 
 
 void mqtt_send(char* topic, char *devtype, char *leaf, char* msg) {
@@ -19,18 +18,6 @@ void mqtt_send(char* topic, char *devtype, char *leaf, char* msg) {
   client.publish(fulltopic, msg);
 }
 
-void send_discovery() {
-
-  char configString[255];
-  char fulltopic[100];
-  /*
-    snprintf (fulltopic, 100, "%s/%s/%s/%s_%s/%s", HA_MQTT_BASE, "sensor", HA_MQTT_NODENAME, HA_MQTT_PREFIX, "button_3", "state");
-    snprintf (configString, 255, "{ \"device_class\": \"sensor\", \"name\": \"Temperature\", \"state_topic\": \"%s\", \"value_template\": \"{{ value_json.state}}\" }", fulltopic);
-
-    mqtt_send("button_1", "sensor", "config", configString);
-  */
-
-}
 
 
 void reconnect() {
@@ -57,7 +44,6 @@ void reconnect() {
       delay(100);
 
         client.publish("display/kitchen/status/last", "HELLO");  
-        send_discovery();
     } else {
       if (USE_SERIAL) {
         Serial.print("failed, rc=");
@@ -74,6 +60,7 @@ void reconnect() {
 
 void callback(char* topic, byte* payload, unsigned int length) {
 
+  /* change our little green mqtt indicator */
   show_mqtt_activity(true);
   
   char pl[255];
@@ -97,9 +84,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   ts_mqtt(topic, pl);
 
-  
-  //drawStatus(topic, ILI9341_ORANGE);
-
+ 
   char o[255];
   int c = myset.process(&ui, topic, pl, "homeassistant");
   if(c != 0) {
@@ -139,49 +124,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       ESP.restart();
     }
   }
-
-  /*
-  if (strcmp(topic, "homeassistant/light/bathroom_light/state") == 0) {
-    Serial.println(pl);
-    
-    if(strcmp(pl, "on") == 0) {
-      bathroomLight.update(true);
-      bathroomLightState = true;
-      drawStatus("Bathroom Light On", ILI9341_BLUE);
-    } else {
-      bathroomLightState = false; 
-      bathroomLight.update(false);
-      drawStatus("Bathroom Light Off", ILI9341_BLUE);
-    }
-    drawBulb(COL_BATHROOM_BULB, ROW_BATHROOM, bathroomLightState);    
-  }
-  */
-  /*
-  if (strcmp(topic, "homeassistant/switch/fish_lamp/state") == 0) {
-    Serial.println(pl);
-    if(strcmp(pl, "on") == 0) {
-      fishLampState = true;
-      drawStatus("Fish Lamp On", ILI9341_BLUE);
-    } else {
-      fishLampState = false; 
-      drawStatus("Fish Lamp Off", ILI9341_BLUE);
-    }
-    drawBulb(COL_AQUARIUM_BULB, ROW_AQUARIUM, fishLampState);    
-  }
-  
-  if (strcmp(topic, "homeassistant/light/kitchen_light/state") == 0) {
-    Serial.println(pl);
-    if(strcmp(pl, "on") == 0) {
-      kitchenLightState = true;
-      drawStatus("Kitchen Light On", ILI9341_BLUE);
-    } else {
-      kitchenLightState = false;
-      drawStatus("Kitchen Light Off", ILI9341_BLUE);
-    }
-    drawBulb(COL_KITCHEN_BULB, ROW_KITCHEN, kitchenLightState);
-  }
-  */  
-
+ 
   if (strcmp(topic, "display/kitchen/event/touch")  == 0) {
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(pl);
@@ -189,7 +132,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     int y = root["y"];
     
     if(x > 180 && x < 180+60 && y > 50 && y < 50+50) {
-      if(kitchenLightState == false) {
+      if(kitchenLight.getBoolValue() == false) {
         client.publish("display/kitchen/event/switch/kitchen_light", "on");
       } else {
         client.publish("display/kitchen/event/switch/kitchen_light", "off");
@@ -210,38 +153,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
 
-  /*
-  
-  if (strcmp(topic, "homeassistant/sensor/temperature_158d0001c15683/state") == 0) {
-    float temp;
-    temp = atof(pl);
-    drawDecimal(COL_BEDROOM_TEMP, ROW_BEDROOM, temp);
-    //drawDecimal(COL_BATHROOM_TEMP, ROW_BATHROOM, temp);
-  }
-
-
-  if (strcmp(topic, "homeassistant/sensor/humidity_158d0001c15683/state") == 0) {
-    float hum;
-    hum = atof(pl);
-    drawDecimal(COL_BEDROOM_HUM, ROW_BEDROOM, hum);
-    drawDecimal(COL_BATHROOM_HUM, ROW_BATHROOM, hum);
-  }
-
-
-  if (strcmp(topic, "homeassistant/sensor/kitchen_temperature/state") == 0) {
-    float temp;
-    temp = atof(pl);
-    drawDecimal(COL_KITCHEN, ROW_KITCHEN, temp);
-  }
-  
-
-  if (strcmp(topic, "homeassistant/sensor/aquarium_temperature/state") == 0) {
-    float temp;
-    temp = atof(pl);
-    drawDecimal(COL_DEVICE_EXT, ROW_DEVICE, temp);
-  }
-
-*/
+  /* Change our little green dot */
   show_mqtt_activity(false);
 
 }
