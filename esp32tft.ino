@@ -91,6 +91,8 @@ DataStore kitchenLight = DataStore("kitchen_light", DATASTORE_TYPE_BOOL);
 DataStore aquariumLight = DataStore("fish_light", DATASTORE_TYPE_BOOL);
 DataStore loungeLight = DataStore("lounge_light", DATASTORE_TYPE_BOOL);
 DataStore loungeExtraLight = DataStore("lounge_light_extra", DATASTORE_TYPE_BOOL);
+DataStore diningLight = DataStore("dining_light", DATASTORE_TYPE_BOOL);
+DataStore hallwayLight = DataStore("hallway_light", DATASTORE_TYPE_BOOL);
 
 DataStore systemLoad1m = DataStore("system_load_1m", DATASTORE_TYPE_INT);
 
@@ -113,6 +115,8 @@ DataIngest mqttKitchenLight  = DataIngest( "light/kitchen_light", DATAINGEST_TYP
 DataIngest mqttLoungeLight  = DataIngest( "light/lounge_light", DATAINGEST_TYPE_LIGHT, loungeLight);
 DataIngest mqttLoungeExtraLight  = DataIngest( "light/lounge_light_extra", DATAINGEST_TYPE_LIGHT, loungeExtraLight);
 DataIngest mqttAquariumLight = DataIngest( "switch/fish_lamp", DATAINGEST_TYPE_SWITCH, aquariumLight);
+DataIngest mqttDiningLight = DataIngest("light/dining_light", DATAINGEST_TYPE_LIGHT, diningLight);
+DataIngest mqttHallwayLight = DataIngest("light/hallway_light", DATAINGEST_TYPE_LIGHT, hallwayLight);
 
 DataIngest mqttSystemLoad1m = DataIngest( "sensor/load_1m", DATAINGEST_TYPE_STATE_INT, systemLoad1m);
 
@@ -126,6 +130,8 @@ DataIngest mqttBathroomTemp = DataIngest( "sensor/temperature_158d0001c15683", D
 DataIngest mqttBathroomHumidity = DataIngest( "sensor/humidity_158d0001c15683", DATAINGEST_TYPE_STATE_FLOAT, bathroomHumidity);
 
 DataIngest mqttAlarmState = DataIngest("alarm_control_panel/ha_alarm", DATAINGEST_TYPE_STATE_CHAR, alarmState);
+
+
 
 #include "UI.h"
 
@@ -158,6 +164,7 @@ void setup() {
   myscreen.println("Getting Time from NTP");
   timeClient.begin();
 
+  /* The current model of object and add will be replaced by a single add like UI shortly */
   myset.addIngester(mqttSystemLoad1m);
   myset.addIngester(mqttBathroomLight);
   myset.addIngester(mqttKitchenLight);
@@ -169,7 +176,8 @@ void setup() {
   myset.addIngester(mqttLoungeLight);
   myset.addIngester(mqttAlarmState);
   myset.addIngester(mqttLoungeExtraLight);
-
+  myset.addIngester(mqttDiningLight);
+  myset.addIngester(mqttHallwayLight);
 
   ui.addWidget(UI_POS_1_1, UI_WIDGET_FLOAT, "Kitchen", "C", kitchenTemp);
   ui.addWidget(UI_POS_1_2, UI_WIDGET_FLOAT, "Outside", "C", outsideTemp);
@@ -177,15 +185,17 @@ void setup() {
   ui.addWidget(UI_POS_1_4, UI_WIDGET_BULB, "Lounge", "", loungeLight);
   
   
-  ui.addWidget(UI_POS_2_3, UI_WIDGET_BULB, "Fish", "", aquariumLight);
+  ui.addWidget(UI_POS_2_3, UI_WIDGET_BULB, " Fish ", "", aquariumLight);
   ui.addWidget(UI_POS_2_4, UI_WIDGET_BULB, "Lnge X", "", loungeExtraLight);
 
   ui.addWidget(UI_POS_3_1, UI_WIDGET_FLOAT, "Bathroom", "C", bathroomTemp);
   ui.addWidget(UI_POS_3_2, UI_WIDGET_FLOAT, "Bathroom", "%H", bathroomHumidity);
-  ui.addWidget(UI_POS_3_3, UI_WIDGET_BULB, "Bath", "", bathroomLight);
+  ui.addWidget(UI_POS_3_3, UI_WIDGET_BULB, " Bath ", "", bathroomLight);
+  ui.addWidget(UI_POS_3_4, UI_WIDGET_BULB, "Dining", "", diningLight);
   
   ui.addWidget(UI_POS_4_1, UI_WIDGET_FLOAT, "Bedroom", "C", bedroomTemp);
   ui.addWidget(UI_POS_4_2, UI_WIDGET_FLOAT, "Bedroom", "%H", bedroomHumidity);
+  ui.addWidget(UI_POS_4_3, UI_WIDGET_BULB, " Hall ", "", hallwayLight);
   ui.addWidget(UI_POS_4_4, UI_WIDGET_HOUSE, " Alarm", "", alarmState);
   
   ui.addButton(UI_BUTTON_1, UI_WIDGET_BUTTON, "Temp");
