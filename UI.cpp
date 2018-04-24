@@ -137,15 +137,25 @@ void UI::_drawWidget_Bulb(int column, int row, bool state) {
 void UI::_drawWidget_House(int column, int row, char *state) {
   
   uint16_t colour;
-  colour = ILI9341_DARKGREY;
-
-  if(strcmp(state, "disarmed") == 0) colour = ILI9341_GREEN;
-  if(strcmp(state, "pending") == 0) colour = ILI9341_ORANGE;
-  if(strcmp(state, "armed_away") == 0) colour = ILI9341_RED;
-  if(strcmp(state, "armed_home") == 0) colour = ILI9341_BLUE;
+  char str[6];
   
-  screen->fillTriangle(column+4, row+25, column+20, row+10, column+36, row+25, colour);
-  screen->fillRect(column+10, row+25, 20, 20, colour); 
+  colour = ILI9341_DARKGREY;
+  
+  strcpy(str, "");
+  if(strcmp(state, "disarmed") == 0)  { strcpy(str, "DSARM"); colour = ILI9341_GREEN; }
+  if(strcmp(state, "pending") == 0)   { strcpy(str, "PEND "); colour = ILI9341_ORANGE; }
+  if(strcmp(state, "armed_away") == 0){ strcpy(str, "AWAY "); colour = ILI9341_RED; }
+  if(strcmp(state, "armed_home") == 0){ strcpy(str, "HOME "); colour = ILI9341_BLUE; }
+  
+  screen->fillTriangle(column+4, row+30, column+20, row+20, column+36, row+30, colour);
+  screen->fillRect(column+10, row+30, 20, 10, colour); 
+  screen->fillRect(column+15, row+32, 10, 13, ILI9341_BLACK);
+  
+  screen->setTextSize(1);
+  screen->setTextColor(colour, ILI9341_BLACK);
+  screen->setCursor(column+6, row+10);
+  screen->print(str);
+  
 };
 
 
