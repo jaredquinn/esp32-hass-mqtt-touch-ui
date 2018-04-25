@@ -12,7 +12,6 @@ uint8_t temprature_sens_read();
 uint8_t temprature_sens_read();
 
 
-bool USE_SERIAL = true;
 
 #define USE_FAST_PINIO true
 
@@ -59,7 +58,6 @@ WiFiUDP ntpUDP;
 #include "clock.h"
 
 #include "UI.h"
-#include "rows.h"
 
 #include "datastore.h"
 #include "dataingest.h"
@@ -68,7 +66,7 @@ WiFiUDP ntpUDP;
 UI ui = UI(myscreen);
 
 NTPClient timeClient(ntpUDP, NTP_SERVER, 36000, 36000);
-UI_Clock_NTP uiClock(&ui, &timeClient);
+UI_Clock_NTP uiClock(ui, timeClient);
 
 
 long booted = 0;
@@ -143,8 +141,6 @@ DataIngest mqttBathroomHumidity = DataIngest( "sensor/humidity_158d0001c15683", 
 DataIngest mqttAlarmState = DataIngest("alarm_control_panel/ha_alarm", DATAINGEST_TYPE_STATE_CHAR, alarmState);
 
 
-
-
 #include "touch.h"
 
 #include "mqtt.h"
@@ -158,19 +154,17 @@ DataIngest mqttAlarmState = DataIngest("alarm_control_panel/ha_alarm", DATAINGES
 
 void setup() {
 
+  local_wifi_setup();
+  
+  ota_setup();
+  
   randomSeed(analogRead(0));
 
   // Turn on the screen
   screenOn = millis();
   runState = 1;
-
-//  backlight_setup();
-  local_wifi_setup();
-  ota_setup();
-    
-  myscreen.println("Getting Time from NTP");
+  
   timeClient.begin();
-
 
   /* The current model of object and add will be replaced by a single add like UI shortly */
   myset.addIngester(mqttSystemLoad1m);
@@ -230,11 +224,14 @@ void loop() {
 
   ArduinoOTA.handle();
   
-  if (!client.connected()) reconnect();
+  if (!client.connected()) {
+    reconnect(&myset);
+  }
   client.loop();
 
   /* checkTouch moving to UI */
   checkTouch();
+
 
   /* Display on/off to move to UI */
   if (screenOn > 0 && now - screenOn > screenTimeout && \
@@ -244,8 +241,9 @@ void loop() {
   }
 
 
-  if (now - lastTime > 1000) {
+  if (now - lastTime > 500) {
     ui.loop();
+    uiClock.loop();
     lastTime = now;
   }
 
@@ -257,6 +255,8 @@ void loop() {
   if (now - mqttPublishTemp > 2000) {
     sensor_get_values();
   }
+
+  
 
 }
 
