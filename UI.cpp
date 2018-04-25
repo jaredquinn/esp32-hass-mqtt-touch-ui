@@ -329,10 +329,6 @@ void UI::render() {
   if(!_screenInit) return;
 
   for (int c = 0; c < UI_SLOTS_TOTAL ; c++) {
-    if(c > 0 && c < 9) {
-      
-    } else {
-      
       if (_widgets[c]._active == true && _widgets[c].ds != NULL) {
  
         if (_widgets[c].ds->hasChanged) {
@@ -342,7 +338,6 @@ void UI::render() {
         }
 
       }
-    }
   }
 
 };

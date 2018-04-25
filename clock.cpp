@@ -44,8 +44,8 @@ void UI_Clock_NTP::_updateClock() {
   _ui->clocks[(int) enumSlot::UI_CLOCK_TIME_MM].update( (int) _ntp->getMinutes() );
   _ui->clocks[(int) enumSlot::UI_CLOCK_TIME_HH].update( (int) _ntp->getHours() );
   
-//  _ui->clocks[enumSlot::UI_CLOCK_DATE_YEAR].update( (int) _ntp->getYear() );
-//  _ui->clocks[enumSlot::UI_CLOCK_DATE_DAY].update( (int) _ntp->getDate() );
+  _ui->clocks[enumSlot::UI_CLOCK_DATE_YEAR].update( (int) _ntp->getYear() );
+  _ui->clocks[enumSlot::UI_CLOCK_DATE_DAY].update( (int) _ntp->getDate() );
 
 //  _ui->clocks[enumSlot::UI_CLOCK_DATE_DOW].update( CLOCK_DAYS[ _ntp->getDay() ] );
 //  _ui->clocks[enumSlot::UI_CLOCK_DATE_MON].update( CLOCK_MONTHS[ _ntp->getMonth() ] );
