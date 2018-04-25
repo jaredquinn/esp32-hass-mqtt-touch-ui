@@ -3,16 +3,15 @@
 #include "datastore.h"
 
 DataIngest::DataIngest(char* mqtt, int sourceType, DataStore& ds) {
-  sprintf(_mqttTopic, "%s/%s", "homeassistant", mqtt);
+  sprintf(mqttTopic, "%s/%s", "homeassistant", mqtt);
   _sourceType = sourceType;
   _ds = &ds;
-  
 };
 
 bool DataIngest::acceptTopic(UI* ui, char *topic) {
   char str[255];
   
-  if(strstr(topic, _mqttTopic) != NULL) return true;
+  if(strstr(topic, mqttTopic) != NULL) return true;
   return false;
 };
 

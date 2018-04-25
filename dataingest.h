@@ -23,13 +23,14 @@ class DataIngest
     DataIngest(char* mqtt, int sourceType, DataStore &ds);
     bool acceptTopic(UI* ui, char *topic);
     int processMQTT(UI* ui, char* topic, char* payload);
+    char mqttTopic[255];
+
   private:
     int  _processStateChar(char* payload);
     int  _processStateOnOff(char* payload);
     int  _processRGBColour(char *payload);
     int  _processStateFloat(char* payload);
     DataStore* _ds;
-    char _mqttTopic[255];
     int _sourceType;
 
 };
