@@ -3,53 +3,41 @@
 
 #include "UI.h"
 #include "pins.h"
+#include "datastore.h"
 
 UI::UI(Adafruit_ILI9341& scrn) {
   screen = &scrn;
-
-  pwm_freq = 5000;
-  pwm_ledChannel = 0;
-  pwm_resolution = 8;
-
-  _drawnGrid = false;
+  
+  initializeScreen();
   _initializeWidgets();
   _initializeBacklight();
-  _initializeScreen();
-
-  *clock.hour = DataStore("clock_hour", DATASTORE_TYPE_INT);
-  *clock.minute = DataStore("clock_minute", DATASTORE_TYPE_INT);
-  *clock.second = DataStore("clock_second", DATASTORE_TYPE_INT);
-  *clock.dayofweek = DataStore("clock_dayofweek", DATASTORE_TYPE_CHAR);
-  *clock.year = DataStore("clock_year", DATASTORE_TYPE_INT);
-  *clock.month = DataStore("clock_month", DATASTORE_TYPE_CHAR);
-  *clock.day = DataStore("clock_day", DATASTORE_TYPE_INT);
-
-  
 };
 
 void UI::finishSetup() {
+
+  for(int v = 0; v < UI_SLOTS_MAX_CLOCK; v++) {  
+    addClock(v); 
+  }
+
   clearScreen(true, false);
+  _screenInit = true;
   _ready();
 };
 
-    
-void UI::updateClock(int h, int m, int s, char *dw, int y, char *mw, int d) {
-  clock.hour->update( h);
-  clock.minute->update( m );
-  clock.second->update( s );
-  clock.dayofweek->update( dw );
-  clock.year->update( y );
-  clock.month->update( mw );
-  clock.day->update( d );
-};
-
-
 void UI::loop() {
-  renderActiveFrames();
-  render();
+  if(_screenInit) {
+
+    if(_lastStatusUpdate > 0 && millis() - _lastStatusUpdate > (_statusTimeout*1000)) {
+      updateStatus(_lastStatusPermanent, _lastStatusPermanentColour, true);
+    }
+    
+    renderActiveFrames();
+    render();
+  }
 }
 
-void UI::_initializeScreen() {
+void UI::initializeScreen() {
+  
   screen->begin();
   clearScreen(true, true);
 
@@ -73,8 +61,11 @@ void UI::_initializeBacklight() {
 
 
 void UI::_initializeWidgets() {
+  if(!_screenInit) return;
+  
   /* Initialize our Widgets Page */
   for (int c = 0; c <= UI_SLOTS_TOTAL; c++) {
+
     strcpy(_widgets[c].title, "");
     strcpy(_widgets[c].unit, "");
     _widgets[c].widgetType = UI_WIDGET_NONE;
@@ -83,9 +74,12 @@ void UI::_initializeWidgets() {
     _widgets[c]._lastDrawn = 0;
     _widgets[c]._lastTitle = 0;
   }
+  
+
 };
 
 void UI::clearScreen(bool clearClock, bool clearStatus) {
+
   int top = 0;
   int bottom = 320;
 
@@ -100,79 +94,109 @@ void UI::clearScreen(bool clearClock, bool clearStatus) {
   }
 };
 
-void UI::_drawButton(int column, int row, int width, int height, char *title) {
-  screen->fillRect(column + 6, row + 10, 34, 24, ILI9341_PURPLE);
-  screen->setCursor(column + 8, row + 18);
+void UI::_drawButton(uiPosition_t pos, char *title) {
+  if(!_screenInit) return;
+  
+  screen->fillRect(pos.x + 6, pos.y + 10, 34, 24, ILI9341_PURPLE);
+  screen->setCursor(pos.x + 8, pos.y + 18);
   screen->setTextColor(ILI9341_WHITE, ILI9341_PURPLE);
   screen->setTextSize(1);
   screen->print(title);
 };
 
-void UI::_drawTitle(int column, int row, char *title) {
+void UI::_drawTitle(uiPosition_t pos, char *title) {
+  if(!_screenInit) return;
+
   screen->setTextSize(1);
-  screen->setCursor(column, row);
+  screen->setCursor(pos.x, pos.y);
   screen->setTextColor(ILI9341_BLUE, ILI9341_BLACK);
   screen->print(title);
 };
 
-void UI::_drawUnit(int column, int row, char *symbol) {
+void UI::_drawUnit(uiPosition_t pos, char *symbol) {
+  if(!_screenInit) return;
+  
   screen->setTextSize(2);
 
   if (symbol[0] == 'C') {
-    screen->drawCircle(column + 52, row + 13, 3, ILI9341_DARKGREY);
-    screen->setCursor(column + 62, row + 8);
+    screen->drawCircle(pos.x + 52, pos.y + 13, 3, ILI9341_DARKGREY);
+    screen->setCursor(pos.x + 62, pos.y + 8);
   } else {
-    screen->setCursor(column + 50, row + 8);
+    screen->setCursor(pos.x + 50, pos.y + 8);
   }
   screen->setTextColor(ILI9341_DARKGREY, ILI9341_BLACK);
   screen->print(symbol);
 
 };
 
-void UI::_drawClockComponent(uiPosition_t pos, char *value) {
+void UI::_drawClockComponent(uiWidget_t* w) {
 
-  if(pos.slot == UI_CLOCK_TIME_DOTS) {
-    screen->fillRect(pos.x, pos.y, 4, 4, UI_CLOCK_COLOUR);  
-    screen->fillRect(pos.x, pos.y + 10, 4, 4, UI_CLOCK_COLOUR);
+  uint16_t colour;
+  char cmpa[255], cmpb[255];
+
+  if((*w).pos.slot == enumSlot::UI_CLOCK_TIME_DOTS) {
+
+    strcpy(cmpa, (*w).ds->renderValue);
+    strcpy(cmpb, "true");
+    
+    if(strcmp(cmpa, cmpb) == 0) colour = UI_CLOCK_COLOUR;
+    else colour = ILI9341_BLACK;
+    
+    screen->fillRect((*w).pos.x, (*w).pos.y, 4, 4, UI_CLOCK_COLOUR);  
+    screen->fillRect((*w).pos.x, (*w).pos.y + 10, 4, 4, UI_CLOCK_COLOUR);
+    
   } else {
-    if(pos.fs > 0) screen->setTextSize(pos.fs);
+
+    if((*w).pos.fs > 0) screen->setTextSize((*w).pos.fs);
     screen->setTextColor(UI_CLOCK_COLOUR, ILI9341_BLACK);
-    screen->setCursor(pos.x, pos.y);
-    screen->printf(value);
+    screen->setCursor((*w).pos.x, (*w).pos.y);
+    screen->printf((*w).ds->renderValue);
   }
+  
 };
 
 
-void UI::_drawWidget_Float(int column, int row, float value) {
+void UI::_drawWidget_Float(uiWidget_t* w) {
+  
+  if(!_screenInit) return;
 
-  int IntegerPart = (int)(value);
-  int DecimalPart = 100 * (value - IntegerPart);
+  float f = (*w).ds->getFloatValue();
+  
+  int IntegerPart = (int)(f);
+  int DecimalPart = 100 * ((f*1000 - IntegerPart*1000)/1000);
 
   screen->setTextColor(ILI9341_WHITE, ILI9341_BLACK);
-  screen->setCursor(column, row + 12);
+  screen->setCursor((*w).pos.x, (*w).pos.y + 12);
   screen->setTextSize(4);
   screen->printf("%02d", IntegerPart);
-  screen->setCursor(column + 50, row + 26);
+  screen->setCursor((*w).pos.x + 50, (*w).pos.y + 26);
   screen->setTextSize(2);
   screen->printf("%02d", DecimalPart);
 };
 
 
-void UI::_drawWidget_Bulb(int column, int row, bool state) {
-  uint16_t colour;
+void UI::_drawWidget_Bulb(uiPosition_t pos, bool state) {
+  if(!_screenInit) return;
 
+  uint16_t colour;
+  
   if (state == true) colour = screen->color565(255, 99, 71);
   else colour = screen->color565(90, 90, 90);
 
-  screen->fillRect(column + 14, row + 28, 11, 15, colour);
-  screen->fillRoundRect(column + 5, row + 10, 28, 28, 14, colour);
+  screen->fillRect(pos.x + 14, pos.y + 28, 11, 15, colour);
+  screen->fillRoundRect(pos.x + 5, pos.y + 10, 28, 28, 14, colour);
 };
 
-void UI::_drawWidget_House(int column, int row, char *state) {
+void UI::_drawWidget_House(uiWidget_t* w) {
+  
+  if(!_screenInit) return;
 
   uint16_t colour;
+  
   char str[6];
-
+  char state[16];
+  strcpy(state, (*w).ds->renderValue);
+  
   colour = ILI9341_DARKGREY;
 
   strcpy(str, "");
@@ -193,90 +217,103 @@ void UI::_drawWidget_House(int column, int row, char *state) {
     colour = ILI9341_BLUE;
   }
 
-  screen->fillTriangle(column + 4, row + 30, column + 20, row + 20, column + 36, row + 30, colour);
-  screen->fillRect(column + 10, row + 30, 20, 10, colour);
-  screen->fillRect(column + 15, row + 32, 10, 13, ILI9341_BLACK);
+  screen->fillTriangle((*w).pos.x + 4, (*w).pos.y + 30, (*w).pos.x + 20, (*w).pos.y + 20, (*w).pos.x + 36, (*w).pos.y + 30, colour);
+  screen->fillRect((*w).pos.x + 10, (*w).pos.y + 30, 20, 10, colour);
+  screen->fillRect((*w).pos.x + 15, (*w).pos.y + 32, 10, 13, ILI9341_BLACK);
 
   screen->setTextSize(1);
   screen->setTextColor(colour, ILI9341_BLACK);
-  screen->setCursor(column + 6, row + 10);
-  screen->print(str);
+  screen->setCursor((*w).pos.x + 6, (*w).pos.y + 10);
+  screen->print((*w).ds->renderValue);
 
 };
 
-void UI::activityLight(int light, bool activity) {
+void UI::activityLight(int light, bool activity, uint16_t myColour) {
   uint16_t colour;
 
   if (activity == true) colour = ILI9341_RED;
   else colour = ILI9341_BLACK;
 
   screen->fillRect(234, (light * 6) + 2, 6, 4, colour);
-}
+};
+
+void UI::activityLight(int light, bool activity) {
+  activityLight(light, activity, ILI9341_RED);
+};
 
 
 void UI::renderWidget(int c) {
-  uiPosition_t pos = getPositionForSlot(c);
+
+  if(!_screenInit) return;
+  activityLight(2, true, ILI9341_ORANGE);
+
 
   if (_widgets[c].ds != NULL) {
-    
+    char str[10];
+        
     switch (_widgets[c].widgetType) {
       case UI_WIDGET_BULB:
-        _drawWidget_Bulb(pos.x, pos.y, _widgets[c].ds->getBoolValue());
+        _drawWidget_Bulb(_widgets[c].pos, _widgets[c].ds->getBoolValue());
         break;
-      case UI_WIDGET_HOUSE:
-        _drawWidget_House(pos.x, pos.y, _widgets[c].ds->getCharValue());
+
+      case UI_WIDGET_HOUSE:         
+        _drawWidget_House(&_widgets[c]);
         break;
-      case UI_WIDGET_FLOAT:
-        _drawWidget_Float(pos.x, pos.y, _widgets[c].ds->getFloatValue());
-        break;
-      case UI_WIDGET_CLOCK:
-        char str[10];
-        if(c == UI_CLOCK_TIME_HH || c == UI_CLOCK_TIME_MM || \
-           c == UI_CLOCK_TIME_SS || c == UI_CLOCK_DATE_DAY)  sprintf(str, "%02d", _widgets[c].ds->getIntValue());
-        if(c == UI_CLOCK_DATE_YEAR)                          sprintf(str, "%04d", _widgets[c].ds->getIntValue());
-        if(c == UI_CLOCK_DATE_DOW || c == UI_CLOCK_DATE_MON) strcpy(str, _widgets[c].ds->getCharValue());        
-        if(c == UI_CLOCK_TIME_DOTS)                          strcpy(str, "");
         
-        _drawClockComponent(pos, str);
+      case UI_WIDGET_FLOAT:
+        _drawWidget_Float(&_widgets[c]);
+        break;
+        
+      case UI_WIDGET_CLOCK:
+        _drawClockComponent(&_widgets[c]);
         break;
     }
   }
+  activityLight(2, false);
+
 }
 
 void UI::renderFrame(int c) {
+  
+  if(!_screenInit) return;
 
-  uiPosition_t pos = getPositionForSlot(c);
+  activityLight(3, true, ILI9341_CYAN);
 
   switch (_widgets[c].widgetType) {
     case UI_WIDGET_BULB:
-      _drawTitle(pos.x, pos.y, _widgets[c].title);
+      _drawTitle(_widgets[c].pos, _widgets[c].title);
       break;
     case UI_WIDGET_HOUSE:
-      _drawTitle(pos.x, pos.y, _widgets[c].title);
+      _drawTitle(_widgets[c].pos, _widgets[c].title);
       break;
     case UI_WIDGET_BUTTON:
-      _drawButton(pos.x, pos.y, pos.w, pos.h, _widgets[c].title);
+      _drawButton(_widgets[c].pos, _widgets[c].title);
       break;
     case UI_WIDGET_FLOAT:
-      _drawTitle(pos.x, pos.y, _widgets[c].title);
-      _drawUnit(pos.x, pos.y, _widgets[c].unit);
+      _drawTitle(_widgets[c].pos, _widgets[c].title);
+      _drawUnit(_widgets[c].pos, _widgets[c].unit);
       break;
   }
-  return;
-}
+  activityLight(3, false);
+
+};
 
 void UI::renderGrid() {
   _drawDivider(50);
   _drawDivider(100);
   _drawDivider(150);
   _drawDivider(200);
-}
+  _drawnGrid = true;
+};
 
 void UI::renderActiveFrames() {
+  if(!_screenInit) return;
+  
   if (!_drawnGrid) {
     renderGrid();
     _drawnGrid = true;
   }
+  
   for (int c = 0; c < UI_SLOTS_TOTAL; c++) {
     if (_widgets[c]._active == true) {
       if (millis() - _widgets[c]._lastTitle > 10000) {
@@ -285,24 +322,55 @@ void UI::renderActiveFrames() {
       }
     }
   }
-}
+
+};
 
 void UI::render() {
-  for (int c = 0; c < UI_SLOTS_TOTAL ; c++) {
+  if(!_screenInit) return;
 
-    if (_widgets[c]._active == true && _widgets[c].ds != NULL) {
-      if (_widgets[c].ds->lastChange() > _widgets[c]._lastDrawn) {
-        _widgets[c]._lastDrawn = millis();
-        renderWidget(c);
+  for (int c = 0; c < UI_SLOTS_TOTAL ; c++) {
+    if(c > 0 && c < 9) {
+      
+    } else {
+      
+      if (_widgets[c]._active == true && _widgets[c].ds != NULL) {
+ 
+        if (_widgets[c].ds->hasChanged) {
+          renderWidget(c);
+          _widgets[c].ds->resetChange();
+          _widgets[c]._lastDrawn = millis();
+        }
+
       }
     }
   }
+
 };
 
 
 void UI::_drawDivider(int x) {
   screen->drawLine(0, x - 5, screen->width(), x - 5, screen->color565(32, 32, 32));
-}
+};
+
+void UI::updateStatus(char *str, uint16_t colour, bool persist) {
+  screen->fillRect(0, 300, 240, 20, colour);
+  screen->setTextSize(1);;
+  screen->setTextColor(ILI9341_WHITE, colour);
+  screen->setCursor(0, 302);
+  screen->print(str);
+
+  if (persist == true) {
+    strcpy(_lastStatusPermanent, str);
+    _lastStatusPermanentColour = colour;
+    _lastStatusUpdate = -1;
+  } else {
+    _lastStatusUpdate = millis();
+  };
+};
+
+void UI::updateStatus(char *str, uint16_t colour) {
+  updateStatus(str, colour, false);
+};
 
 
 void UI::addButton(int slot, int widgetType, char *title) {
@@ -313,7 +381,10 @@ void UI::addButton(int slot, int widgetType, char *title) {
   _widgets[slot]._lastDrawn = 0;
   _widgets[slot]._lastTitle = 0;
   _widgets[slot]._updates = false;
+
+  updateSlotPosition(slot);
 }
+
 
 void UI::addWidget(int slot, int widgetType, char *title, char *unit, DataStore& ds) {
   addButton(slot, widgetType, title);
@@ -321,70 +392,64 @@ void UI::addWidget(int slot, int widgetType, char *title, char *unit, DataStore&
   strcpy(_widgets[slot].unit, unit);
   _widgets[slot].ds = &ds;
   _widgets[slot]._updates = true;
+
+  updateSlotPosition(slot);
 };
 
-void UI::addClock(int slot, DataStore& ds) {
-  _widgets[slot].ds = &ds;
+void UI::addClock(int slot) {
+  _widgets[slot].ds = (&clocks[slot]);
+  _widgets[slot].widgetType = UI_WIDGET_CLOCK;
   _widgets[slot]._active = true;
-  _widgets[slot]._lastDrawn = 0;
+  _widgets[slot]._lastDrawn = -1;
   _widgets[slot]._lastTitle = 0;
   _widgets[slot]._updates = true;
+  updateSlotPosition(slot);
 };
 
-void UI::updateStatus(char *str, uint16_t colour, bool temporary) {
-  screen->fillRect(0, 300, 240, 20, colour);
-  screen->setTextSize(2);
-  screen->setTextColor(ILI9341_WHITE, colour);
-  screen->setCursor(0, 302);
-  screen->print(str);
-
-  if (temporary) {
-    _lastStatusUpdate = millis();
-  } else {
-    strcpy(_lastStatusPermanent, str);
-    _lastStatusUpdate = -1;
-  };
-
-};
 
 void UI::_ready() {
   updateStatus(UI_MSG_WELCOME, ILI9341_BLUE, true);
 };
 
 
-UI::uiPosition_t UI::getPositionForSlot(int slot) {
+void UI::updateSlotPosition(int slot) {
 
-  uiPosition_t pos;
+  uiPosition_t *p;
+  p = &_widgets[slot].pos;
+  
+  (*p).slot = slot;
+  
+  if(slot >= 0 && slot < enumSlot::UI_POS_1_1) {  
+    (*p).h = 50;
+    (*p).w = screen->width();
 
-  if(slot <= UI_SLOTS_MAX_CLOCK) {
-    pos.h = 50;
     switch(slot) {
-      case UI_CLOCK_TIME_HH:   pos.x = 6;   pos.y = 4; pos.fs = 4; 
-      case UI_CLOCK_TIME_MM:   pos.x = 64;  pos.y = 4; pos.fs = 4; 
-      case UI_CLOCK_TIME_SS:   pos.x = 116; pos.y = 4; pos.fs = 2; 
-      case UI_CLOCK_TIME_DOTS: pos.x = 52;  pos.y = 12; 
-      case UI_CLOCK_DATE_MON:  pos.x = 146; pos.y = 18; pos.fs = 2;
-      case UI_CLOCK_DATE_DOW:  pos.x = 118; pos.y = 24; pos.fs = 1; 
-      case UI_CLOCK_DATE_DAY:  pos.x = 186; pos.y = 4; pos.fs = 4; 
-      case UI_CLOCK_DATE_YEAR: pos.x = 150; pos.y = 4; pos.fs = 1; 
+      case enumSlot::UI_CLOCK_TIME_SS:   (*p).x = 116; (*p).y = 4; (*p).fs = 2;  break;
+      case enumSlot::UI_CLOCK_TIME_MM:   (*p).x = 64;  (*p).y = 4; (*p).fs = 4; break; 
+      case enumSlot::UI_CLOCK_TIME_HH:   (*p).x = 6;   (*p).y = 4; (*p).fs = 4; break;
+      case enumSlot::UI_CLOCK_TIME_DOTS: (*p).x = 52;  (*p).y = 12; (*p).fs = -1; break;
+      case enumSlot::UI_CLOCK_DATE_MON:  (*p).x = 146; (*p).y = 18; (*p).fs = 2; break;
+      case enumSlot::UI_CLOCK_DATE_DOW:  (*p).x = 118; (*p).y = 24; (*p).fs = 1; break;
+      case enumSlot::UI_CLOCK_DATE_DAY:  (*p).x = 186; (*p).y = 4; (*p).fs = 4;  break;
+      case enumSlot::UI_CLOCK_DATE_YEAR: (*p).x = 150; (*p).y = 4; (*p).fs = 1; break;
     }   
-  }
+  } 
 
-  if(slot > UI_SLOTS_MAX_CLOCK && slot < UI_BUTTON_1) {
-    int wSlot = slot - UI_SLOTS_MAX_CLOCK;
+  if(slot >= enumSlot::UI_POS_1_1 && slot < enumSlot::UI_BUTTON_1) {
+  
+    int wSlot = (slot - 8);
     
-    if (wSlot % 4 == 0 || wSlot % 4 == 1) pos.x = wSlot % 4 * 80;
-    if (wSlot % 4 == 2 || wSlot % 4 == 3) pos.x = 160 + (((wSlot % 4) - 2) * 40);
-    pos.y = (int(wSlot / 4) + 1) * 50;
+    (*p).x = (wSlot % 4) * 80;
+    if(wSlot % 4 == 3) (*p).x = (*p).x - 40;
+    (*p).y = (int(wSlot / 4) + 1) * 50;
   }
 
-  if(slot >= UI_BUTTON_1 <= UI_SLOTS_TOTAL) {
-    int bSlot = slot - UI_BUTTON_1;
-    pos.y = 250;
-    pos.x = (bSlot % 8) * 40; 
+  if(slot >= enumSlot::UI_BUTTON_1 && slot <= UI_SLOTS_TOTAL) {
+    
+    int bSlot = (slot - enumSlot::UI_BUTTON_1);
+    (*p).y = 250;
+    (*p).x = (bSlot % 8) * 40; 
   }
 
-  pos.slot = slot;
-  return pos;  
 };
 
