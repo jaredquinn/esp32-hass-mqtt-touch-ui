@@ -1,30 +1,41 @@
 #include "datastore.h"
 
 
+DataStore::DataStore(char *name, int dataType, char *fmt)
+{
+  strcpy(_name, name);
+  strcpy(_fmtString, fmt);
+  _fmtRender = true;
+  dataType = dataType;
+  hasChanged = false;
+  lastUpdated = 0;
+};
+
 DataStore::DataStore(char *name, int dataType)
 {
   strcpy(_name, name);
-  _dataType = dataType;
-  _hasChanged = false;
-  _lastUpdated = 0;
+  dataType = dataType;
+  hasChanged = false;
+  lastUpdated = 0;
 };
 
 void DataStore::_commonUpdate() {
-  _lastUpdated = millis();
-  _hasChanged = true;
+  lastUpdated = millis();
+  hasChanged = true;
   char str[255];
   sprintf(str, "Updated %s", _name);  
 };
 
 
 void DataStore::resetChange() {
-  _hasChanged = false;  
+  hasChanged = false;  
 };
 
 void DataStore::update(float f) {
   if(f != _floatValue) {
     _floatLast = _floatValue;
     _floatValue = f;
+    if(_fmtRender) sprintf(renderValue, _fmtString, _floatValue);
     _commonUpdate();
   }
 };
@@ -37,6 +48,7 @@ void DataStore::update(bool b) {
   if(b != _boolValue) {
     _boolLast = _boolValue;
     _boolValue = b;
+    if(_fmtRender) sprintf(renderValue, _fmtString, _boolValue ? "true" : "false");
     _commonUpdate();
   }
 };
@@ -53,9 +65,10 @@ bool DataStore::getBoolValue() {
 };
 
 void DataStore::update(int i) {
-  if(i != _intValue) {
+  if(_intValue != i) {
     _intLast = _intValue;
     _intValue = i;
+    if(_fmtRender) sprintf(renderValue, _fmtString, _intValue);
     _commonUpdate();
   }
 };
@@ -68,6 +81,7 @@ void DataStore::update(String s) {
   if(s != _strValue) {
     _strLast = _strValue;
     _strValue = s;
+    if(_fmtRender) sprintf(renderValue, _fmtString, s.c_str());
     _commonUpdate();
   }
 };
@@ -81,16 +95,25 @@ void DataStore::update(char *s) {
   if(strcmp(s, _charValue) != 0) {
     strcpy(_charLast, _charValue);
     strcpy(_charValue, s);
+    if(_fmtRender) sprintf(renderValue, _fmtString, s);
     _commonUpdate();
   }
 };
+
+/*
+char * DataStore::getCharValue(char *s) {
+  strcpy(s, _charValue);
+  return s;
+};
+*/
 
 char * DataStore::getCharValue() {
   return _charValue;
 };
 
+
 long DataStore::lastChange() {
-  return _lastUpdated;
+  return lastUpdated;
 };
 
 
