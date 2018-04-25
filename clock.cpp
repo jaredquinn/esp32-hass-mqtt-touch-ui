@@ -47,9 +47,9 @@ void UI_Clock_NTP::_updateClock() {
   _ui->clocks[enumSlot::UI_CLOCK_DATE_YEAR].update( (int) _ntp->getYear() );
   _ui->clocks[enumSlot::UI_CLOCK_DATE_DAY].update( (int) _ntp->getDate() );
 
-//  _ui->clocks[enumSlot::UI_CLOCK_DATE_DOW].update( CLOCK_DAYS[ _ntp->getDay() ] );
+  _ui->clocks[enumSlot::UI_CLOCK_DATE_DOW].update( CLOCK_DAYS[ _ntp->getDay() ] );
 //  _ui->clocks[enumSlot::UI_CLOCK_DATE_MON].update( CLOCK_MONTHS[ _ntp->getMonth() ] );
-//  _ui->clocks[enumSlot::UI_CLOCK_TIME_DOTS].update( (bool) (_ntp->getSeconds() % 2 == 1 ? true : false ) );
+  _ui->clocks[enumSlot::UI_CLOCK_TIME_DOTS].update( (bool) ((_ntp->getSeconds() % 2 != 0) ? true : false ) );
 };
 
 
@@ -72,7 +72,7 @@ void UI_Clock_NTP::loop() {
     return;
   }
     
-  if(millis() - _lastUpdate > 500) {    
+  if(millis() - _lastUpdate > 250) {    
     _updateClock();    
     _lastUpdate = millis();
   }

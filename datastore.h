@@ -44,7 +44,6 @@ class DataStore
     float getFloatValue();
     bool getBoolValue();
     String getStringValue();
-
     char  * getCharValue();
 
     long  lastUpdated = -1;
@@ -59,24 +58,19 @@ class DataStore
     bool _fmtRender = false;
     
     
-    float _floatValue = 0;
-    int   _intValue = 0;
-    bool  _boolValue = 0;
-    char _charValue[255];
-
     float _floatLast = 0;
     int   _intLast = 0;
     bool  _boolLast = 0;
     char _charLast[255];
 
+    float _floatValue = 0;
+    int   _intValue = 0;
+    bool  _boolValue = false;
+    char _charValue[255];
     String  _strValue;
     String  _strLast;
 
 };
-
-
-
-
 
 
 #endif;
