@@ -60,8 +60,10 @@ void checkTouch() {
   }
 }
 
+
+
 void ts_mqtt(char* topic, char pl[255]) {
-  
+/*  
   if (strcmp(topic, "display/kitchen/setting/ts_minx") == 0) {
     ts_minx = atoi(pl);
   }
@@ -77,5 +79,5 @@ void ts_mqtt(char* topic, char pl[255]) {
   if (strcmp(topic, "display/kitchen/setting/ts_maxy") == 0) {
     ts_maxy = atoi(pl);
   }
-
+*/
 }
