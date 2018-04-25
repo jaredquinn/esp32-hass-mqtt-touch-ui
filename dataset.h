@@ -2,6 +2,7 @@
 #define DATASET_H
 
 #include "dataingest.h"
+#include <PubSubClient.h>
 
 class DataSet
 {
@@ -9,6 +10,8 @@ class DataSet
     DataSet();
     void addIngester(DataIngest& ingester);
     int process(UI* ui, char *topic, char *payload, char *basepart);
+    void subscribe(PubSubClient* mqtt);
+
   private:
     int _count;
     
