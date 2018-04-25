@@ -29,31 +29,27 @@
 #include "datastore.h"
 #include <NTPClient.h>
 
-UI_Clock_NTP::UI_Clock_NTP(UI *ui, NTPClient* ntp) {
+UI_Clock_NTP::UI_Clock_NTP(UI& ui, NTPClient& ntp) {
   _lastUpdate = 0;
-  _ui = ui;
-  _ntp = ntp;
+  _lastSync = 0;
+  
+  _ui = &ui;
+  _ntp = &ntp;
+
 };
 
 void UI_Clock_NTP::_updateClock() {
-
-  char *dow;
-  char *mon;
-
-  strcpy(dow, CLOCK_DAYS[ _ntp->getDay() ]);
-  strcpy(mon, CLOCK_MONTHS[ _ntp->getMonth() ]);
   
-  _ui->updateClock(
-      _ntp->getHours(),
-      _ntp->getMinutes(),
-      _ntp->getSeconds(),
-      dow,
-      _ntp->getYear(),
-      mon,
-      _ntp->getDate() 
-  );  
+  _ui->clocks[(int) enumSlot::UI_CLOCK_TIME_SS].update( (int) _ntp->getSeconds() );
+  _ui->clocks[(int) enumSlot::UI_CLOCK_TIME_MM].update( (int) _ntp->getMinutes() );
+  _ui->clocks[(int) enumSlot::UI_CLOCK_TIME_HH].update( (int) _ntp->getHours() );
+  
+//  _ui->clocks[enumSlot::UI_CLOCK_DATE_YEAR].update( (int) _ntp->getYear() );
+//  _ui->clocks[enumSlot::UI_CLOCK_DATE_DAY].update( (int) _ntp->getDate() );
 
-  _lastUpdate = _ntp->getEpochTime();
+//  _ui->clocks[enumSlot::UI_CLOCK_DATE_DOW].update( CLOCK_DAYS[ _ntp->getDay() ] );
+//  _ui->clocks[enumSlot::UI_CLOCK_DATE_MON].update( CLOCK_MONTHS[ _ntp->getMonth() ] );
+//  _ui->clocks[enumSlot::UI_CLOCK_TIME_DOTS].update( (bool) (_ntp->getSeconds() % 2 == 1 ? true : false ) );
 };
 
 
@@ -68,10 +64,19 @@ void UI_Clock_NTP::setOffset(int offset) {
 };
 
 void UI_Clock_NTP::loop() {
-  long c = _ntp->getEpochTime();
-  if(c - _lastUpdate > 1000) {
-    _updateClock();
+
+  if(_lastSync == 0 || millis() - _lastSync > (_syncSeconds * 1000)) {
+    _ui->updateStatus("Requesting Time", ILI9341_GREEN);
+    _ntp->forceUpdate();
+    _lastSync = millis();
+    return;
+  }
+    
+  if(millis() - _lastUpdate > 500) {    
+    _updateClock();    
+    _lastUpdate = millis();
   }
 };
+
 
 

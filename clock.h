@@ -35,7 +35,7 @@ const static char CLOCK_DAYS[7][4] = { "SUN", "MON", "TUE", "WED", "THU", "FRI",
 
 class UI_Clock_NTP  {
   public:
-    UI_Clock_NTP(UI* ui, NTPClient* ntp);
+    UI_Clock_NTP(UI& ui, NTPClient& ntp);
     int syncTimeout;
     
     void setOffset(int offset);
@@ -48,11 +48,11 @@ class UI_Clock_NTP  {
     
     unsigned long _lastTime;
     
-    long _lastUpdate;
-    long _lastSync;
+    long _lastUpdate = 0;
+    long _lastSync = 0;
 
-    int _offset;
-    int _syncSeconds;
+    int _offset = 36000;
+    int _syncSeconds = 120;
     
     UI* _ui;
     NTPClient* _ntp;
