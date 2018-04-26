@@ -2,6 +2,8 @@
 #ifndef UI_H
 #define UI_H
 
+#include "Adafruit_ILI9341.h"
+#include "datastore.h"
 
 #define UI_MSG_INIT    "Booting CatsLair IOT"
 #define UI_MSG_WELCOME "Welcome to CatsLair"
@@ -18,8 +20,6 @@
 
 /* Slots continue;  Slots 16-22 are for the button row with 8 columns! */
 
-#include "Adafruit_ILI9341.h"
-#include "datastore.h"
 
 #define seconds() (millis()/1000)
 
@@ -68,7 +68,7 @@ enum enumSlot {
 
 class UI {
   public:
-    UI(Adafruit_ILI9341& scrn);
+    UI(Adafruit_ILI9341& scrn, int ledPin);
 
     typedef struct {
       int x = -1, y = -1, h = -1, w = -1, fs = -1, slot = -1;
@@ -110,8 +110,9 @@ class UI {
 
     Adafruit_ILI9341 *screen;
 
-  private:
-       
+    long loopRan = 0;
+    int  loopHold = 250;
+
     struct uiWidget_t {
       char title[32];
       char unit[3];
@@ -127,6 +128,8 @@ class UI {
 
     } _widgets[UI_SLOTS_TOTAL];
 
+  private:
+       
     void _initializeBacklight();
     void _initializeWidgets();
 
@@ -148,6 +151,7 @@ class UI {
     bool _screenInit = false; /* has the screen been init */
     
     /* Backlight LED Control */
+    int _pinLED = 0;
     int pwm_freq = 5000;
     int pwm_ledChannel = 8;
     int pwm_resolution = 1024;
@@ -159,9 +163,11 @@ class UI {
     uint16_t  _lastStatusPermanentColour;
     char      _lastStatusPermanent[255];
     long      _lastStatusUpdate = 0;
+    uint16_t  _lastStatusColour;
     
     /* Status Timeout */
     int       _statusTimeout = 10;
+
     
 };
 

@@ -1,16 +1,40 @@
+/**
+ * UI.cpp 
+ * UI Interface Rendering Class
+ * 
+ * The MIT License (MIT)
+ * Copyright (c) 2018 by Jared Quinn
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 #include "Adafruit_ILI9341.h"
 
 #include "UI.h"
-#include "pins.h"
 #include "datastore.h"
 
-UI::UI(Adafruit_ILI9341& scrn) {
+UI::UI(Adafruit_ILI9341& scrn, int ledPin=0) {
   screen = &scrn;
-  
-  initializeScreen();
-  _initializeWidgets();
+
+  if(ledPin > 0) _pinLED = ledPin;
   _initializeBacklight();
+  _initializeWidgets();
+
 };
 
 void UI::finishSetup() {
@@ -24,16 +48,19 @@ void UI::finishSetup() {
   _ready();
 };
 
-void UI::loop() {
-  if(_screenInit) {
 
-    if(_lastStatusUpdate > 0 && millis() - _lastStatusUpdate > (_statusTimeout*1000)) {
-      updateStatus(_lastStatusPermanent, _lastStatusPermanentColour, true);
-    }
-    
+void UI::loop() {
+  if(!_screenInit) return;
+  
+  if(_lastStatusUpdate > 0 && millis() - _lastStatusUpdate > (_statusTimeout*1000)) {
+    updateStatus(_lastStatusPermanent, _lastStatusPermanentColour, true);
+  }
+
+  if(loopRan == 0 || millis() - loopRan > loopHold) {
     renderActiveFrames();
     render();
-  }
+  }  
+
 }
 
 void UI::initializeScreen() {
@@ -54,9 +81,11 @@ void UI::initializeScreen() {
 
 
 void UI::_initializeBacklight() {
-  ledcSetup(pwm_ledChannel, pwm_freq, pwm_resolution);
-  ledcAttachPin(PIN_TFT_LED, pwm_ledChannel);
-  ledcWrite(pwm_ledChannel, 255);
+  if(_pinLED > 0) {
+    ledcSetup(pwm_ledChannel, pwm_freq, pwm_resolution);
+    ledcAttachPin(_pinLED, pwm_ledChannel);
+    ledcWrite(pwm_ledChannel, 255);
+  }
 };
 
 
@@ -93,6 +122,7 @@ void UI::clearScreen(bool clearClock, bool clearStatus) {
     screen->fillRect(0, top, screen->width(), bottom, ILI9341_BLACK);
   }
 };
+
 
 void UI::_drawButton(uiPosition_t pos, char *title) {
   if(!_screenInit) return;
@@ -136,14 +166,11 @@ void UI::_drawClockComponent(uiWidget_t* w) {
 
   if((*w).pos.slot == enumSlot::UI_CLOCK_TIME_DOTS) {
 
-    strcpy(cmpa, (*w).ds->renderValue);
-    strcpy(cmpb, "true");
-    
-    if(strcmp(cmpa, cmpb) == 0) colour = UI_CLOCK_COLOUR;
+    if((*w).ds->getBoolValue() == true) colour = UI_CLOCK_COLOUR;
     else colour = ILI9341_BLACK;
     
-    screen->fillRect((*w).pos.x, (*w).pos.y, 4, 4, UI_CLOCK_COLOUR);  
-    screen->fillRect((*w).pos.x, (*w).pos.y + 10, 4, 4, UI_CLOCK_COLOUR);
+    screen->fillRect((*w).pos.x, (*w).pos.y + 8, 4, 4, UI_CLOCK_COLOUR);  
+    screen->fillRect((*w).pos.x, (*w).pos.y + 18, 4, 4, UI_CLOCK_COLOUR);
     
   } else {
 
@@ -195,7 +222,7 @@ void UI::_drawWidget_House(uiWidget_t* w) {
   
   char str[6];
   char state[16];
-  strcpy(state, (*w).ds->renderValue);
+  strcpy(state, (*w).ds->_charValue);
   
   colour = ILI9341_DARKGREY;
 
@@ -224,7 +251,7 @@ void UI::_drawWidget_House(uiWidget_t* w) {
   screen->setTextSize(1);
   screen->setTextColor(colour, ILI9341_BLACK);
   screen->setCursor((*w).pos.x + 6, (*w).pos.y + 10);
-  screen->print((*w).ds->renderValue);
+  screen->print(str);
 
 };
 
@@ -316,9 +343,12 @@ void UI::renderActiveFrames() {
   
   for (int c = 0; c < UI_SLOTS_TOTAL; c++) {
     if (_widgets[c]._active == true) {
-      if (millis() - _widgets[c]._lastTitle > 10000) {
-        _widgets[c]._lastTitle = millis() - random(1000);
-        renderFrame(c);
+
+      if( (_widgets[c].widgetType == UI_WIDGET_BUTTON && _widgets[c]._lastTitle == 0) ||
+          (_widgets[c].widgetType != UI_WIDGET_BUTTON && millis() - _widgets[c]._lastTitle > 10000) ) {
+            
+          renderFrame(c);
+          _widgets[c]._lastTitle = millis() - random(1000);        
       }
     }
   }
@@ -348,7 +378,10 @@ void UI::_drawDivider(int x) {
 };
 
 void UI::updateStatus(char *str, uint16_t colour, bool persist) {
-  screen->fillRect(0, 300, 240, 20, colour);
+
+  if(colour != _lastStatusColour) screen->fillRect(0, 300, 240, 20,colour);
+  _lastStatusColour = colour;
+  
   screen->setTextSize(1);;
   screen->setTextColor(ILI9341_WHITE, colour);
   screen->setCursor(0, 302);
@@ -415,35 +448,37 @@ void UI::updateSlotPosition(int slot) {
   (*p).slot = slot;
   
   if(slot >= 0 && slot < enumSlot::UI_POS_1_1) {  
-    (*p).h = 50;
-    (*p).w = screen->width();
-
     switch(slot) {
-      case enumSlot::UI_CLOCK_TIME_SS:   (*p).x = 116; (*p).y = 4; (*p).fs = 2;  break;
-      case enumSlot::UI_CLOCK_TIME_MM:   (*p).x = 64;  (*p).y = 4; (*p).fs = 4; break; 
-      case enumSlot::UI_CLOCK_TIME_HH:   (*p).x = 6;   (*p).y = 4; (*p).fs = 4; break;
-      case enumSlot::UI_CLOCK_TIME_DOTS: (*p).x = 52;  (*p).y = 12; (*p).fs = -1; break;
-      case enumSlot::UI_CLOCK_DATE_MON:  (*p).x = 146; (*p).y = 18; (*p).fs = 2; break;
-      case enumSlot::UI_CLOCK_DATE_DOW:  (*p).x = 118; (*p).y = 24; (*p).fs = 1; break;
-      case enumSlot::UI_CLOCK_DATE_DAY:  (*p).x = 186; (*p).y = 4; (*p).fs = 4;  break;
-      case enumSlot::UI_CLOCK_DATE_YEAR: (*p).x = 150; (*p).y = 4; (*p).fs = 1; break;
+      case enumSlot::UI_CLOCK_TIME_SS:   (*p).x = 116; (*p).y = 4;  (*p).h = 20; (*p).w = 20; (*p).fs = 2;  break;
+      case enumSlot::UI_CLOCK_TIME_MM:   (*p).x = 64;  (*p).y = 4;  (*p).h = 46; (*p).w = 50; (*p).fs = 4; break; 
+      case enumSlot::UI_CLOCK_TIME_HH:   (*p).x = 6;   (*p).y = 4;  (*p).h = 46; (*p).w = 50; (*p).fs = 4; break;
+      case enumSlot::UI_CLOCK_TIME_DOTS: (*p).x = 55;  (*p).y = 4;  (*p).h = 46; (*p).w = 4; (*p).fs = -1; break;
+      case enumSlot::UI_CLOCK_DATE_MON:  (*p).x = 146; (*p).y = 18; (*p).h = 22; (*p).w = 50; (*p).fs = 2; break;
+      case enumSlot::UI_CLOCK_DATE_DOW:  (*p).x = 118; (*p).y = 24; (*p).h = 16; (*p).w = 20; (*p).fs = 1; break;
+      case enumSlot::UI_CLOCK_DATE_DAY:  (*p).x = 186; (*p).y = 4;  (*p).h = 46; (*p).w = 20; (*p).fs = 4;  break;
+      case enumSlot::UI_CLOCK_DATE_YEAR: (*p).x = 150; (*p).y = 4;  (*p).h = 20; (*p).w = 20; (*p).fs = 1; break;
     }   
   } 
 
-  if(slot >= enumSlot::UI_POS_1_1 && slot < enumSlot::UI_BUTTON_1) {
-  
+  if(slot >= enumSlot::UI_POS_1_1 && slot < enumSlot::UI_BUTTON_1) {  
     int wSlot = (slot - 8);
     
     (*p).x = (wSlot % 4) * 80;
     if(wSlot % 4 == 3) (*p).x = (*p).x - 40;
+
     (*p).y = (int(wSlot / 4) + 1) * 50;
+    (*p).h = 50;
+    if(wSlot % 4 < 2) (*p).w = 40;
+    else (*p).w = 80; 
   }
 
   if(slot >= enumSlot::UI_BUTTON_1 && slot <= UI_SLOTS_TOTAL) {
     
     int bSlot = (slot - enumSlot::UI_BUTTON_1);
+    (*p).x = (bSlot % 8) * 40;
     (*p).y = 250;
-    (*p).x = (bSlot % 8) * 40; 
+    (*p).h = 50;
+    (*p).w = 40;
   }
 
 };

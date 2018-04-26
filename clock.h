@@ -33,13 +33,18 @@
 const static char CLOCK_MONTHS[12][4] = { "JAN", "FEB", "MAR", "APR","MAY","JUN","JUL","AUG","SEP","OCT", "NOV", "DEC" };
 const static char CLOCK_DAYS[7][4] = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
 
+
 class UI_Clock_NTP  {
   public:
-    UI_Clock_NTP(UI& ui, NTPClient& ntp);
+    UI_Clock_NTP(UI * ui, NTPClient * ntp);
+    
     int syncTimeout;
     
     void setOffset(int offset);
+    
+    void begin();
     void loop();
+    
     void setSyncFrequency(int seconds);
 
   private:

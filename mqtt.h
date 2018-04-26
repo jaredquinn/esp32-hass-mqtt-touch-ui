@@ -1,7 +1,6 @@
 
 /* This library is mostly deprecated */
-
-
+/* it will be moved to the DataSet class to provide the framework interfacce around MQTT */
 
 void mqtt_send(char* topic, char *devtype, char *leaf, char* msg) {
 
@@ -21,31 +20,15 @@ void mqtt_send(char* topic, char *devtype, char *leaf, char* msg) {
 
 
 void reconnect(DataSet * set) {
-  while (!client.connected()) {
-    #ifdef USE_SERIAL
-      Serial.print("Attempting MQTT connection...");
-    #endif
-    
-    // Create a random client ID
+  while (!client.connected()) {    
     String clientId = "DevArd-";
     clientId += String(random(0xffff), HEX);
-    // Attempt to connect
     
     if (client.connect(clientId.c_str())) {
-
       (*set).subscribe(&client);      
-/*      client.subscribe("homeassistant/light/#");
-      client.subscribe("homeassistant/sensor/#");
-      client.subscribe("homeassistant/switch/#");
-      client.subscribe("homeassistant/alarm_control_panel/#");
-*/
       client.subscribe("display/kitchen/#");
-
       delay(100);
-
-      //  client.publish("display/kitchen/status/last", "HELLO");  
-    } else {
-      
+    } else {      
       #ifdef USE_SERIAL
         Serial.print("failed, rc=");
         Serial.print(client.state());
@@ -67,24 +50,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
   char pl[255];
   char o[255];
 
-  //sprintf(pl, "%s", payload);
-  
   for (int i = 0; i < length; i++) {
-    if (i < 255) {
-      pl[i] = (char)payload[i];
-      pl[i + 1] = NULL;
-    }
+    if (i < 255) { pl[i] = (char)payload[i]; pl[i + 1] = NULL; }
   }
 
-  ts_mqtt(topic, pl);
+  //ts_mqtt(topic, pl);
   myset.process(&ui, topic, pl, "homeassistant");
+  
   ui.activityLight(0, false);
-
 };
 
 
 void mqtt_setup() {
-  myscreen.println("Connecting to MQTT Server");
   client.setServer(MQTT_SERVER, 1883);
   client.setCallback(callback);
 };

@@ -1,6 +1,8 @@
 #include "datastore.h"
 
 
+
+
 DataStore::DataStore(char *name, int dataType, char *fmt)
 {
   strcpy(_name, name);
@@ -115,6 +117,7 @@ char * DataStore::getCharValue() {
 long DataStore::lastChange() {
   return lastUpdated;
 };
+
 
 
 

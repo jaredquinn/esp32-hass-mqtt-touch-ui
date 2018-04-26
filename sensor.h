@@ -1,28 +1,49 @@
 
+#ifndef UI_SENSOR_DALLAS
+#define UI_SENSOR_DALLAS
 
-void sensor_setup() {
-  myscreen.println("Starting OneWire BUS for External Temp");
-  sensors.begin();
+#define MAX_SENSORS 8
+
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <PubSubClient.h>
+
+#include "UI.h"
+
+class UI_Sensor_Dallas {
+  public:
+    UI_Sensor_Dallas(uint8_t pinOneWire, UI * ui);
+
+    void setup(PubSubClient * ps);
+    void loop(PubSubClient * ps);
+
+    int deviceCount = 0;
+    
+  private:
+    
+    UI * _ui;
+    OneWire * _ow;
+    DallasTemperature * _sensor;    
+    DeviceAddress _address[MAX_SENSORS]; 
+
+    long _lastSent[MAX_SENSORS] = {};
+    long _lastValue[MAX_SENSORS] = {};
+
+    long _requestedTemp = 0;
+    long _lastUpdate = 0;
+};
+
+
+#endif
+
+/*
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint8_t temprature_sens_read();
+#ifdef __cplusplus
 }
+#endif
+uint8_t temprature_sens_read();
+*/
 
-void sensor_get_values() {          
-  currentTemp = sensors.getTempCByIndex(0);
-  
-  if (currentTemp != lastTemp && currentTemp < 80 && currentTemp > -127) {
-    //drawDecimal(COL_AQUARIUM_TEMP, ROW_AQUARIUM, currentTemp);
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();    
-    char jsonStr[255];
-    root["temperature"] = currentTemp;
-    root.printTo(jsonStr);
-    client.publish("display/kitchen/temperature", jsonStr);
-
-    lastTemp = currentTemp;
-    mqttPublishTemp = millis();  
-  }
-}
-
-void sensor_ask_values() {
-  sensors.setWaitForConversion(false);
-  sensors.requestTemperatures(); 
-}
