@@ -1,3 +1,6 @@
+# CAVEAT: THIS IS A WORK IN PROGRESS AND IS INCOMPLETE, UNTESTED AND JUST FOR FUN
+
+
 # esp32-hass-mqtt-touch-ui
 An ESP32 MQTT based HASS Touch User Interface Framework.
 
