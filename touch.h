@@ -14,6 +14,8 @@ class UI_Touch {
     void begin();
     void loop(PubSubClient * ps);    
 
+    void handleTouch(PubSubClient * ps, int x, int y, int z);
+    
     XPT2046_Touchscreen * ts;
     UI * ui;
     PubSubClient * ps;
