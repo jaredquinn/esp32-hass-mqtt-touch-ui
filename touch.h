@@ -14,32 +14,40 @@ class UI_Touch {
     void begin();
     void loop(PubSubClient * ps);    
 
-    void handleTouch(PubSubClient * ps, int x, int y, int z);
+    void handleTouch(PubSubClient * ps,  int x,  int y,  int z,  int d);
     
     XPT2046_Touchscreen * ts;
     UI * ui;
-    PubSubClient * ps;
+//    PubSubClient * ps;
     
-    TS_Point lastPoint;
+//    TS_Point lastPoint;
     
     int ts_minx = 351;
     int ts_miny = 262;
     int ts_maxx = 3777;
     int ts_maxy = 3771;
+
+
+    int ts_x = 0;
+    int ts_y = 0;
+    int ts_z = 0;
+    int ts_d = 0;
     
+    /*
     int smallX = 0;
     int smallY = 0;
     int largeX = 0;
-    int largeY = 0;
-    int convertedX = 0;
-    int convertedY = 0;
+    int largeY = 0;*/
 
   private:
 
  //   void _processTouch(const TS_Point * p);
-    
+
+    bool isLong = false;    
     bool wasTouched = true;
-    int  wasTouchedAt = 0;
+    long wasTouchedAt = 0;
+    long lastDuration = 0;
+
 };
 
 #endif

@@ -29,33 +29,35 @@ void UI_Sensor_Dallas::setup(PubSubClient * ps) {
 };
 
 void UI_Sensor_Dallas::loop(PubSubClient* ps) {
+  float  temp;
+  char topic[255];
+  char tmpStr[255];
 
-  if(millis() - _lastUpdate > 1000 && _requestedTemp == false) {
-    (*_sensor).setWaitForConversion(false);
-    (*_sensor).requestTemperatures(); 
-    _requestedTemp = true;
-  }
+  if(millis() - _lastUpdate > 1000) {
+    if(!_requestedTemp) {
+      (*_sensor).setWaitForConversion(false);
+      (*_sensor).requestTemperatures(); 
+      _requestedTemp = true;
+    } else {  
+      deviceCount = (*_sensor).getDeviceCount();
+  
+      for(unsigned i = 0; i < deviceCount; i++) {
+        temp = (*_sensor).getTempC(_address[i]);
 
-  if (millis() - _lastUpdate > 2000) {
-    float temp;
-    char topic[255];
-    char tmpStr[255];
-    
-    deviceCount = (*_sensor).getDeviceCount();
+        if(_lastSent[i] == 0 || abs(_lastValue[i] - temp) > 0.01) {
+          _lastValue[i] = temp;
+          sprintf(topic, "display/kitchen/sensor/temperature_%x", _address[i]);
+          sprintf(tmpStr, "%f", temp);
+          (*ps).publish(topic, tmpStr);   
 
-    for(unsigned i = 0; i < deviceCount; i++) {
-      temp = (*_sensor).getTempC(_address[i]);
-      if(_lastValue[i] != temp) {
-        _lastValue[i] = temp;
-        sprintf(topic, "display/kitchen/sensor/%x", _address[i]);
-        sprintf(tmpStr, "%f", temp);
-        (*ps).publish(topic, tmpStr);              
+          _lastSent[i] = millis();           
+        }
+        
       }
-    }
-    _requestedTemp = false;
-    _lastUpdate = millis();
+      _requestedTemp = false;
+    }    
+    _lastUpdate = millis();  
   }
-
 };
 
 

@@ -20,39 +20,44 @@ void UI_Touch::begin() {
 void UI_Touch::loop(PubSubClient * ps) {
 
   bool isTouched = (*ts).touched();
-  
-  
-  if (isTouched) {    
-    TS_Point p = (*ts).getPoint();   
 
-    if(!wasTouched) {
-      /* Touch Press */
-      handleTouch(ps, p.x, p.y, p.z);            
-    }
-   
-  } else {
-    /* Touch Release */
-    if(wasTouched) {
-    }
-  }
+  if (isTouched && !isLong) 
+  {       
+    if(!wasTouched) wasTouchedAt = millis();
+    else if(millis() - wasTouchedAt > 750) isLong = true;
+    wasTouched = true;
+  } 
+    else if(wasTouched && (!isTouched || isLong)) 
+  {   
   
-  wasTouched = isTouched;
-  wasTouchedAt = millis();
+    TS_Point p = (*ts).getPoint();         
+    ts_x = p.x; ts_y = p.y; ts_z = p.z;      
+    ts_d = (millis() - wasTouchedAt);
+
+    if(lastDuration == 0 || ts_d < lastDuration) {
+      handleTouch(ps, ts_x, ts_y, ts_z, ts_d);
+      lastDuration = ts_d;
+    }       
+  }
+
+  if(!isTouched) { isLong = false; wasTouched = false; wasTouchedAt = 0; lastDuration = 0; }
+  
 };
 
 
-void UI_Touch::handleTouch(PubSubClient * ps, const int x, const int y, const int z) {
-  char event[255];
-  char xyz[20];
+void UI_Touch::handleTouch(PubSubClient * ps, int x, int y, int z, int d) {
+  char event[255], xyz[32], msg[255];
   bool hasEvent = false;
-  
+  int convertedX = 0, convertedY = 0;
+
   convertedX = map(x, ts_minx, ts_maxx, 0, (*ui).screen->width());
   convertedY = map(y, ts_miny, ts_maxy, 0, (*ui).screen->height());
 
-  sprintf(xyz, "[%d, %d, %d]", convertedX, convertedY, z);
-  (*ps).publish("display/kitchen/touch/position_xyz", xyz);
+  sprintf(xyz, "[%d, %d, %d, %d]", convertedX, convertedY, z, d);
+  (*ps).publish("display/kitchen/touch/position_xyzd", xyz);
 
-  if(convertedX > 0 && convertedX < (*ui).screen->width() && convertedY > 0 && convertedY < 50) {
+  if(convertedX > 0 && convertedX < (*ui).screen->width() && 
+     convertedY > 0 && convertedY < 50) {
       strcpy(event, "clock");
       hasEvent = true;
   }
@@ -64,15 +69,18 @@ void UI_Touch::handleTouch(PubSubClient * ps, const int x, const int y, const in
 
       if(convertedX > ep->x && convertedX < ep->x + ep->w &&
          convertedY > ep->y && convertedY < ep->y + ep->h ) {
+          
           sprintf(event, "%s", (*ui)._widgets[c].ds->_name);  
+          (*ps).publish("display/kitchen/touch/target", event);
+          
+          sprintf(msg, "Sending %s event", (*ui)._widgets[c].ds->_name);          
+          (*ui).updateStatus(msg, ILI9341_PURPLE);
+          
           hasEvent = true;
       }
     }
   }
 
-  if(hasEvent) {
-       (*ps).publish("display/kitchen/touch/target", event);
-  }
 
 }
 
