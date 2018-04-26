@@ -36,7 +36,6 @@ void UI_Sensor_Dallas::loop(PubSubClient* ps) {
     _requestedTemp = true;
   }
 
-
   if (millis() - _lastUpdate > 2000) {
     float temp;
     char topic[255];
@@ -54,6 +53,7 @@ void UI_Sensor_Dallas::loop(PubSubClient* ps) {
       }
     }
     _requestedTemp = false;
+    _lastUpdate = millis();
   }
 
 };
