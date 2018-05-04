@@ -70,6 +70,7 @@ void UI_Touch::handleTouch(PubSubClient * ps, int x, int y, int z, int d) {
       if(convertedX > ep->x && convertedX < ep->x + ep->w &&
          convertedY > ep->y && convertedY < ep->y + ep->h ) {
           
+          
           sprintf(event, "%s", (*ui)._widgets[c].ds->_name);  
           (*ps).publish("display/kitchen/touch/target", event);
           
