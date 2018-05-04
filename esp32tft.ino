@@ -38,56 +38,43 @@
 
 #define MQTT_PUBLISH_BASE "display/kitchen"
 
-/* Framework Includes - these will be moved into the main framework soon */
-#include "datastore.h"
-#include "ingester.h"
+#include "WiFiCredentials.h"
 
-/* Display Configuration, UI and Touchscreen and setup */
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
+#include <ESPmDNS.h>
+#include <ArduinoOTA.h>
+#include <PubSubClient.h>
+
 #include <SPI.h>
-
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include <XPT2046_Touchscreen.h>
 
+/* Framework Includes - these will be moved into the main framework soon */
 #include "UI.h"
 #include "touch.h"
+#include "datastore.h"
+#include "ingester.h"
+#include "sensor.h"
+#include "clock.h"
 
 Adafruit_ILI9341 myscreen = Adafruit_ILI9341(PIN_TFT_CS, PIN_TFT_DC, PIN_HSPI_MOSI, PIN_HSPI_CLK, PIN_TFT_RESET, PIN_HSPI_MISO);
 XPT2046_Touchscreen ts(PIN_TS_CS);
 UI ui = UI(myscreen, PIN_TFT_LED);
 UI_Touch touch = UI_Touch(&ui, &ts);
 
-/* Network related stuff */
-#include <ArduinoJson.h>
-
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-#include <WiFi.h>
-#include <ESPmDNS.h>
-#include <ArduinoOTA.h>
-#include <PubSubClient.h>
-
-#include "clock.h"
-#include "WiFiCredentials.h"
-
-
 WiFiClient espClient;
 WiFiUDP ntpUDP;
 PubSubClient client(espClient);
 NTPClient timeClient(ntpUDP, NTP_SERVER, 36000, 36000);
+
 UI_Clock_NTP uiClock(&ui, &timeClient);
-
-#include "sensor.h"
-
 UI_Sensor_Dallas sensor(ONE_WIRE_BUS, MQTT_PUBLISH_BASE);
 
-long screenOn = 0;
-int screenBrightness = 100;
-int screenTimeout = 30000;
-long lastTouch = 0;
 
 /* These guys are the next target to be fixed up and made sane! */
-
 DataStore bathroomLight = DataStore("bathroom_light", DATASTORE_TYPE_BOOL);
 DataStore kitchenLight = DataStore("kitchen_light", DATASTORE_TYPE_BOOL);
 DataStore aquariumLight = DataStore("fish_light", DATASTORE_TYPE_BOOL);
@@ -111,43 +98,36 @@ DataStore bathroomHumidity = DataStore("bathroom_humidity", DATASTORE_TYPE_FLOAT
 
 DataStore alarmState = DataStore("ha_alarm", DATASTORE_TYPE_CHAR);
 
-
 MQTT_Ingester ingester = MQTT_Ingester(client);
-
-
-#include "wifi_setup.h"
-#include "clock.h"
 
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   char pl[255];
   char top[128];
 
   strcpy(top, topic);
-  
   ui.activityLight(0, true, ILI9341_BLUE);  
   for (int i = 0; i < length; i++) { if (i < 255) { pl[i] = (char)payload[i]; pl[i + 1] = NULL; } }
   ingester.process(top, pl);
   ui.activityLight(0, false);
 };
 
+long lastMQTTConnect = 0;
+
 void mqtt_reconnect() {
   while (!client.connected()) {    
-    String clientId = "DevArd-";
-    clientId += String(random(0xffff), HEX);
-    
-    if (client.connect(clientId.c_str())) {
-      ingester.subscribe();      
-      client.subscribe("display/kitchen/#");
-      delay(100);
-    } else {      
-      #ifdef USE_SERIAL
-        Serial.print("failed, rc=");
-        Serial.print(client.state());
-        Serial.println(" try again in 5 seconds");
-        // Wait 5 seconds before retrying
-      #endif
-      delay(5000);
+    if(millis() - lastMQTTConnect > 5000) {
+      String clientId = "DevArd-";
+      clientId += String(random(0xffff), HEX);
+           
+      if (client.connect(clientId.c_str())) {
+        ui.println("MQTT Connected");
+        ingester.subscribe();      
+        client.subscribe("display/kitchen/#");
+      } else {
+        ui.println("Cant Connect MQTT");
+      }
     }
+    lastMQTTConnect = millis();
   }
 };
 
@@ -183,11 +163,19 @@ void ota_setup() {
 
 
 void setup() {
-
   randomSeed(analogRead(0));
-  ui.initializeScreen();
 
-  local_wifi_setup();
+  ui.initializeScreen();
+  ui.print("Connecting to ");
+  ui.println(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSPHRASE);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    ui.print(".");
+  }
+  ui.println("");
+  ui.println("Connection Established");
+  
   ota_setup();
 
   ingester.addIngester("statestream/sensor/load_1m", enumIngestType::STATE_INT, systemLoad1m);
@@ -235,8 +223,6 @@ void setup() {
   client.setServer(MQTT_SERVER, 1883);
   client.setCallback(mqtt_callback);
 
-  //ingester.setup();
-  
   client.publish("display/kitchen/status", "BOOTING");
 
   touch.begin();
@@ -248,19 +234,16 @@ void setup() {
 
 
 void loop() {
-  long now = millis();
 
-  if (!client.connected()) {
-    mqtt_reconnect();
-  }
+  if (!client.connected()) mqtt_reconnect();
+  else client.loop();
 
   ArduinoOTA.handle();
 
-  client.loop();
-  touch.loop(&client);
   uiClock.loop();
   ui.loop();
   sensor.loop(&client);
+  touch.loop(&client);
 
 }
 
