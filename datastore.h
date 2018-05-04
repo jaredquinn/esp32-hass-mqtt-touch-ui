@@ -84,14 +84,14 @@ class DataStore
     bool _fmtRender = false;
     
     
-    float _floatLast = 0;
-    int   _intLast = 0;
-    bool  _boolLast = 0;
+    float _floatLast = NULL;
+    int   _intLast = NULL;
+    bool  _boolLast = NULL;
     char _charLast[255];
 
-    float _floatValue = 0;
-    int   _intValue = 0;
-    bool  _boolValue = false;
+    float _floatValue = NULL;
+    int   _intValue = NULL;
+    bool  _boolValue = NULL;
     char _charValue[255];
     String  _strValue;
     String  _strLast;
