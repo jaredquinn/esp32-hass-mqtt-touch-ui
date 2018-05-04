@@ -74,6 +74,7 @@ UI_Clock_NTP uiClock(&ui, &timeClient);
 UI_Sensor_Dallas sensor(ONE_WIRE_BUS, MQTT_PUBLISH_BASE);
 
 
+
 /* These guys are the next target to be fixed up and made sane! */
 DataStore bathroomLight = DataStore("bathroom_light", DATASTORE_TYPE_BOOL);
 DataStore kitchenLight = DataStore("kitchen_light", DATASTORE_TYPE_BOOL);
@@ -114,6 +115,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 long lastMQTTConnect = 0;
 
 void mqtt_reconnect() {
+  ui.println("");
   while (!client.connected()) {    
     if(millis() - lastMQTTConnect > 5000) {
       String clientId = "DevArd-";
