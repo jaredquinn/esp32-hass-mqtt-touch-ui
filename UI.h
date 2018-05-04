@@ -138,8 +138,12 @@ class UI {
     void finishSetup();
     void loop();
 
+    void println(char *str);
+    void print(char *str);
+
     void updateStatus(char *str, uint16_t colour);
     void updateStatus(char *str, uint16_t colour, bool persist);
+    void updateStatusAppend(char *str);
 
     void render();
     void renderWidget(int c);
@@ -199,10 +203,12 @@ class UI {
 
     /* When UI is ready */
     void _ready();
+    bool _readyState = NULL;
     
     /* Status Bar */
     uint16_t  _lastStatusPermanentColour;
     char      _lastStatusPermanent[255];
+    char      _lastStatus[255];
     long      _lastStatusUpdate = 0;
     uint16_t  _lastStatusColour;
     
