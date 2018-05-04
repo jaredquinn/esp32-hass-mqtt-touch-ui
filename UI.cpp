@@ -28,6 +28,7 @@
 #include "UI.h"
 #include "datastore.h"
 
+
 UI::UI(Adafruit_ILI9341& scrn, int ledPin=0) {
   screen = &scrn;
 
@@ -48,22 +49,31 @@ void UI::finishSetup() {
   clearScreen(true, false);
   _screenInit = true;
   _ready();
+
+  
 };
 
 
 void UI::loop() {
+  long now = millis();
   if(!_screenInit) return;
+  if(now - _lastTime > 250) {
+    if(_lastStatusUpdate > 0 && millis() - _lastStatusUpdate > (_statusTimeout*1000)) {
+      updateStatus(_lastStatusPermanent, _lastStatusPermanentColour, true);
+    }
   
-  if(_lastStatusUpdate > 0 && millis() - _lastStatusUpdate > (_statusTimeout*1000)) {
-    updateStatus(_lastStatusPermanent, _lastStatusPermanentColour, true);
+    if(loopRan == 0 || millis() - loopRan > loopHold) {
+      renderActiveFrames();
+      render();
+    }  
+    _lastTime = now;
   }
-
-  if(loopRan == 0 || millis() - loopRan > loopHold) {
-    renderActiveFrames();
-    render();
-  }  
-
 }
+
+void UI::enableDrawWidgets(bool toggle) {
+  _widgetDrawing = toggle;
+}
+
 
 void UI::initializeScreen() {
   
@@ -333,11 +343,14 @@ void UI::renderGrid() {
   _drawDivider(150);
   _drawDivider(200);
   _drawnGrid = true;
+
+  
 };
 
 void UI::renderActiveFrames() {
   if(!_screenInit) return;
-  
+  if(!_widgetDrawing) return;
+    
   if (!_drawnGrid) {
     renderGrid();
     _drawnGrid = true;
@@ -359,6 +372,7 @@ void UI::renderActiveFrames() {
 
 void UI::render() {
   if(!_screenInit) return;
+  if(!_widgetDrawing) return;
 
   for (int c = 0; c < UI_SLOTS_TOTAL ; c++) {
       if (_widgets[c]._active == true && _widgets[c].ds != NULL) {
@@ -376,7 +390,9 @@ void UI::render() {
 
 
 void UI::_drawDivider(int x) {
-  screen->drawLine(0, x - 5, screen->width(), x - 5, screen->color565(32, 32, 32));
+  if(_widgetDrawing) {
+    screen->drawLine(0, x - 5, screen->width(), x - 5, screen->color565(32, 32, 32));
+  }
 };
 
 void UI::updateStatus(char *str, uint16_t colour, bool persist) {
@@ -403,7 +419,7 @@ void UI::updateStatus(char *str, uint16_t colour) {
 };
 
 
-void UI::addButton(int slot, int widgetType, char *title) {
+void UI::addWidget(int slot, int widgetType, char *title) {
   strcpy(_widgets[slot].title, title);
   _widgets[slot].widgetType = widgetType;
   _widgets[slot].ds = NULL;
@@ -415,9 +431,8 @@ void UI::addButton(int slot, int widgetType, char *title) {
   updateSlotPosition(slot);
 }
 
-
 void UI::addWidget(int slot, int widgetType, char *title, char *unit, DataStore& ds) {
-  addButton(slot, widgetType, title);
+  addWidget(slot, widgetType, title);
   
   strcpy(_widgets[slot].unit, unit);
   _widgets[slot].ds = &ds;
@@ -425,6 +440,7 @@ void UI::addWidget(int slot, int widgetType, char *title, char *unit, DataStore&
 
   updateSlotPosition(slot);
 };
+
 
 void UI::addClock(int slot) {
   _widgets[slot].ds = (&clocks[slot]);
@@ -438,6 +454,7 @@ void UI::addClock(int slot) {
 
 
 void UI::_ready() {
+  enableDrawWidgets(true);
   updateStatus(UI_MSG_WELCOME, ILI9341_BLUE, true);
 };
 

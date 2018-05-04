@@ -1,9 +1,34 @@
+/**
+   UI.h
+   UI Header File
+   
+   The MIT License (MIT)
+   Copyright (c) 2018 by Jared Quinn
 
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+*/
 #ifndef UI_H
 #define UI_H
 
 #include "Adafruit_ILI9341.h"
 #include "datastore.h"
+
+//#include "images.h"
 
 #define UI_MSG_INIT    "Booting CatsLair IOT"
 #define UI_MSG_WELCOME "Welcome to CatsLair"
@@ -14,6 +39,7 @@
 #define UI_WIDGET_BUTTON 3
 #define UI_WIDGET_HOUSE  4
 #define UI_WIDGET_CLOCK  99
+
 
 
 #define UI_SLOTS_MAX_WIDGETS    UI_SLOTS_MAX_CLOCK + 16
@@ -66,6 +92,7 @@ enum enumSlot {
 
 
 
+
 class UI {
   public:
     UI(Adafruit_ILI9341& scrn, int ledPin);
@@ -73,6 +100,27 @@ class UI {
     typedef struct {
       int x = -1, y = -1, h = -1, w = -1, fs = -1, slot = -1;
     } uiPosition_t;
+    
+    
+    typedef struct {     
+      char title[32], subtitle[32];
+      unsigned int  page = 0, widgetType = 0;
+      enum enumSlot slot;
+    } uiWidget_config;
+
+    typedef struct {
+      char title[32];
+      char unit[3];
+      int  widgetType = 0;
+    
+      DataStore *ds;
+      uiPosition_t pos;
+      
+      long _lastDrawn = 0;
+      long _lastTitle  = 0;
+      bool _active = false;
+      bool _updates = false;
+    } uiWidget_t;
 
     DataStore clocks[8] = {
       DataStore("clock_time_hh", DATASTORE_TYPE_INT, "%02d"),
@@ -101,35 +149,25 @@ class UI {
     void activityLight(int light, bool activity);
     void activityLight(int light, bool activity, uint16_t myColour);
     void updateClock(int hour, int minute, int second, char *dow, int year, char *month, int day);
-
+    
+    void enableDrawWidgets(bool toggle);
+    
     void updateSlotPosition(int slot);
 
     void addClock(int slot);
-    void addWidget(int slot, int widgetType, char *title, char *unit, DataStore &ds);
-    void addButton(int slot, int widgetType, char *title);
+    void addWidget (int slot, int widgetType, char *title, char *unit, DataStore &ds);
+    void addWidget (int slot, int widgetType, char *title);
 
     Adafruit_ILI9341 *screen;
 
     long loopRan = 0;
     int  loopHold = 250;
 
-    struct uiWidget_t {
-      char title[32];
-      char unit[3];
-      int  widgetType = 0;
-
-      DataStore *ds;
-      uiPosition_t pos;
-      
-      long _lastDrawn = 0;
-      long _lastTitle  = 0;
-      bool _active = false;
-      bool _updates = false;
-
-    } _widgets[UI_SLOTS_TOTAL];
+    uiWidget_t _widgets[UI_SLOTS_TOTAL];
 
   private:
        
+    
     void _initializeBacklight();
     void _initializeWidgets();
 
@@ -156,6 +194,9 @@ class UI {
     int pwm_ledChannel = 8;
     int pwm_resolution = 1024;
 
+    /* Flag to allow widgets/titles to draw, does not cover clock & status */
+    bool _widgetDrawing = false;
+
     /* When UI is ready */
     void _ready();
     
@@ -168,7 +209,8 @@ class UI {
     /* Status Timeout */
     int       _statusTimeout = 10;
 
-    
+    long      _lastTime = 0;
+
 };
 
 #endif
