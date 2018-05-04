@@ -8,11 +8,10 @@
 #include <DallasTemperature.h>
 #include <PubSubClient.h>
 
-#include "UI.h"
 
 class UI_Sensor_Dallas {
   public:
-    UI_Sensor_Dallas(uint8_t pinOneWire, UI * ui);
+    UI_Sensor_Dallas(uint8_t pinOneWire, char *bt);
 
     void setup(PubSubClient * ps);
     void loop(PubSubClient * ps);
@@ -23,7 +22,8 @@ class UI_Sensor_Dallas {
 
     void _sendHAconfig(PubSubClient * ps);
 
-    UI * _ui;
+    char baseTopic[72];
+    
     long _configurationSent;
     
     OneWire * _ow;
@@ -40,19 +40,10 @@ class UI_Sensor_Dallas {
     long _lastConfig = 0;
     long _polls = 0;
     long _resetFrequency = 10000;
+    long _lastValid = 0;
+    
 };
 
 
 #endif
-
-/*
-#ifdef __cplusplus
-extern "C" {
-#endif
-uint8_t temprature_sens_read();
-#ifdef __cplusplus
-}
-#endif
-uint8_t temprature_sens_read();
-*/
 
