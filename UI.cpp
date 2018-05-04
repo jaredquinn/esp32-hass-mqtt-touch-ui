@@ -39,6 +39,25 @@ UI::UI(Adafruit_ILI9341& scrn, int ledPin=0) {
 };
 
 
+void UI::println(char *str) {
+  #ifdef USE_SERIAL
+  Serial.println(str);
+  #endif
+  if(_readyState) { 
+    updateStatusAppend(str), strcpy(_lastStatus, "");
+  } else { 
+    screen->println(str); 
+  }
+}
+
+void UI::print(char *str) {
+  #ifdef USE_SERIAL
+  Serial.print(str);
+  #endif
+  if(_readyState) updateStatusAppend(str);
+  else screen->print(str);  
+}
+
 
 void UI::finishSetup() {
 
@@ -395,6 +414,12 @@ void UI::_drawDivider(int x) {
   }
 };
 
+void UI::updateStatusAppend(char *str) {
+  char s[255];
+  sprintf(s, "%s%s", _lastStatus, str);
+  updateStatus(s, _lastStatusColour);
+};
+
 void UI::updateStatus(char *str, uint16_t colour, bool persist) {
 
   if(colour != _lastStatusColour) screen->fillRect(0, 300, 240, 20,colour);
@@ -405,6 +430,7 @@ void UI::updateStatus(char *str, uint16_t colour, bool persist) {
   screen->setCursor(0, 302);
   screen->print(str);
 
+  strcpy(_lastStatus, str);
   if (persist == true) {
     strcpy(_lastStatusPermanent, str);
     _lastStatusPermanentColour = colour;
@@ -456,6 +482,7 @@ void UI::addClock(int slot) {
 void UI::_ready() {
   enableDrawWidgets(true);
   updateStatus(UI_MSG_WELCOME, ILI9341_BLUE, true);
+  _readyState = true;
 };
 
 
