@@ -79,7 +79,9 @@ void UI_Clock_NTP::begin() {
 void UI_Clock_NTP::loop() {
 
   if(_lastSync == 0 || millis() - _lastSync > (_syncSeconds * 1000)) {
-    _ui->updateStatus("Requesting Time", ILI9341_GREEN);
+    
+    _ui->activityLight(2, true, ILI9341_GREEN);
+    //_ui->updateStatus("Requesting Time", ILI9341_GREEN);
     _ntp->forceUpdate();
     _lastSync = millis();
     return;
@@ -88,6 +90,7 @@ void UI_Clock_NTP::loop() {
   if(millis() - _lastUpdate > 250) {    
     _updateClock();    
     _lastUpdate = millis();
+    _ui->activityLight(2, false, ILI9341_GREEN);
   }
 };
 

@@ -61,7 +61,7 @@ class UI_Clock_NTP  {
     
     UI* _ui;
     NTPClient* _ntp;
-    
+
     
 };
 
